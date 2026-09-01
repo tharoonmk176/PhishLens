@@ -1,0 +1,182 @@
+[
+  {
+    "pattern_id": "TP01",
+    "title": "Account Suspension Urgency Lure",
+    "description": "Scammers send urgent account suspension notices mimicking financial or payment services (e.g. PayPal, Chase) with countdown timers or immediate verification links to credential harvesting pages.",
+    "indicators": ["domain_typosquat", "urgency_language", "credential_harvesting"]
+  },
+  {
+    "pattern_id": "TP02",
+    "title": "Document Sharing & Invoice Phishing",
+    "description": "Attacker impersonates DocuSign, Dropbox, or OneDrive sharing an encrypted or overdue invoice, directing victims to fake OAuth or login portals.",
+    "indicators": ["brand_mismatch", "suspicious_url", "credential_harvesting"]
+  },
+  {
+    "pattern_id": "TP03",
+    "title": "Shipping & Package Delivery Impersonation",
+    "description": "Notifications pretending to be DHL, FedEx, or UPS claiming a package is delayed or unpaid customs fee required, linking to malicious payment forms.",
+    "indicators": ["suspicious_tld", "brand_in_subdomain", "urgency_language"]
+  },
+  {
+    "pattern_id": "TP04",
+    "title": "Double Extension Malware Delivery",
+    "description": "Emails containing malicious attachments disguised as PDFs or documents using double extensions such as .pdf.exe or .docx.scr.",
+    "indicators": ["extension_spoofing", "executable_attachment"]
+  },
+  {
+    "pattern_id": "TP05",
+    "title": "Unauthenticated Display Name Impersonation",
+    "description": "VIP or executive impersonation where the display name states the executive or CEO but the sender address is a free webmail or spoofed unauthenticated domain lacking SPF/DKIM/DMARC.",
+    "indicators": ["display_name_mismatch", "auth_results_fail"]
+  },
+  {
+    "pattern_id": "TP06",
+    "title": "Payroll & Direct Deposit Redirection",
+    "description": "Urgent requests targeting HR/finance claiming employee bank direct deposit details need immediate verification or updating before pay cycle deadline.",
+    "indicators": ["urgency_language", "credential_harvesting_phrasing"]
+  },
+  {
+    "pattern_id": "TP07",
+    "title": "Cloud Storage Shared Link Phishing",
+    "description": "Google Drive or SharePoint notifications linking to external credential harvesting pages mimicking Microsoft 365 or Google login screens.",
+    "indicators": ["brand_in_subdomain", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP08",
+    "title": "Tax Authority / Government Refund Scam",
+    "description": "Notices claiming an unclaimed tax rebate or penalty notice requiring immediate identity card number and banking PIN submission.",
+    "indicators": ["credential_harvesting_phrasing", "urgency_language"]
+  },
+  {
+    "pattern_id": "TP09",
+    "title": "IT Helpdesk Password Expiry Notice",
+    "description": "Fake internal IT alerts stating user password expires today and directing to fake self-service password reset portals on unauthorized domains.",
+    "indicators": ["display_name_brand_mismatch", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP10",
+    "title": "Voicemail / Audio Message Attachment Lure",
+    "description": "Notification claiming missed urgent voice message with an attached audio file disguised as .wav.vbs or .mp3.exe.",
+    "indicators": ["double_extension_spoofing", "executable_attachment"]
+  },
+  {
+    "pattern_id": "TP11",
+    "title": "E-Commerce Order Cancellation & Refund",
+    "description": "Fake Amazon or Apple purchase confirmations with unauthorized charge alerts urging customer to call fake numbers or click cancellation links.",
+    "indicators": ["brand_keyword_in_unauthorized_domain", "urgency_language"]
+  },
+  {
+    "pattern_id": "TP12",
+    "title": "Macro-Enabled Invoice Dropper",
+    "description": "Supplier invoice emails attaching .docm or .xlsm files prompting victims to enable macros to view protected content.",
+    "indicators": ["macro_enabled_document"]
+  },
+  {
+    "pattern_id": "TP13",
+    "title": "Suspicious TLD Redirection Campaign",
+    "description": "Phishing emails leveraging high-abuse free TLDs (.tk, .ml, .xyz) to host transient credential harvesting landing pages.",
+    "indicators": ["suspicious_tld", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP14",
+    "title": "Bank KYC Re-Verification Alert",
+    "description": "Banking alerts claiming mandatory KYC re-verification is pending and accounts will be frozen without instant document upload.",
+    "indicators": ["urgency_language", "credential_harvesting_phrasing"]
+  },
+  {
+    "pattern_id": "TP15",
+    "title": "Shortened URL Obfuscation Lure",
+    "description": "Phishing links disguised using link shorteners (bit.ly, tinyurl) to bypass basic gateway URL filtering and hide malicious landing servers.",
+    "indicators": ["url_shortener_expanded", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP16",
+    "title": "Lookalike Brand Subdomain Trick",
+    "description": "Hostnames embedding trusted names into subdomains (e.g. appleid.verify-session.biz) to deceive users who only glance at the start of URLs.",
+    "indicators": ["brand_in_subdomain"]
+  },
+  {
+    "pattern_id": "TP17",
+    "title": "Reply-To Redirection Exfiltration",
+    "description": "Phishing emails using legitimate display addresses in the From field while setting Reply-To to an attacker-controlled external domain.",
+    "indicators": ["reply_to_domain_mismatch"]
+  },
+  {
+    "pattern_id": "TP18",
+    "title": "Unauthenticated Free Webmail Executive Spoof",
+    "description": "Emails sent from Gmail/Yahoo free addresses with display names mimicking corporate leadership requesting urgent gift cards or wire transfers.",
+    "indicators": ["display_name_brand_mismatch", "unauthenticated_sender_domain"]
+  },
+  {
+    "pattern_id": "TP19",
+    "title": "Multi-Hop Relay Anomaly Phish",
+    "description": "Spam campaigns routed through open relays across multiple suspicious hops to conceal original sending infrastructure.",
+    "indicators": ["excessive_received_hops"]
+  },
+  {
+    "pattern_id": "TP20",
+    "title": "New Domain Registration Campaign",
+    "description": "Targeted spear-phishing using domains registered less than 30 days prior to evade age-based domain reputation blocklists.",
+    "indicators": ["newly_registered_domain"]
+  },
+  {
+    "pattern_id": "TP21",
+    "title": "Subscription Auto-Renewal Charge Alert",
+    "description": "Fake Norton/GeekSquad invoices claiming $499 auto-renewal will process in 2 hours unless customer calls or fills cancellation link.",
+    "indicators": ["urgency_language", "brand_keyword_in_unauthorized_domain"]
+  },
+  {
+    "pattern_id": "TP22",
+    "title": "Cryptocurrency Wallet Verification Scam",
+    "description": "Fake alerts from MetaMask or Coinbase demanding wallet seed phrase confirmation to avoid account deactivation.",
+    "indicators": ["credential_harvesting_phrasing", "urgency_language"]
+  },
+  {
+    "pattern_id": "TP23",
+    "title": "Fake Survey & Gift Card Incentive",
+    "description": "Targeted phishing offering high-value shopping vouchers in exchange for logging in with work credentials.",
+    "indicators": ["credential_harvesting_phrasing", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP24",
+    "title": "HR Benefit Enrollment Deadline Scam",
+    "description": "Fake HR notices stating open enrollment closes today with links to external spoofed benefit portals.",
+    "indicators": ["urgency_language", "insecure_login_url"]
+  },
+  {
+    "pattern_id": "TP25",
+    "title": "Law Enforcement Subpoena Notice Lure",
+    "description": "Scare-tactic emails claiming recipient is named in a court case and must download and execute an attached case archive.",
+    "indicators": ["urgency_language", "executable_attachment"]
+  },
+  {
+    "pattern_id": "TP26",
+    "title": "Raw IP Address Host Phish",
+    "description": "Phishing emails with verification URLs pointing directly to raw numerical IPv4 addresses instead of registered domain names.",
+    "indicators": ["ip_literal_url"]
+  },
+  {
+    "pattern_id": "TP27",
+    "title": "Multi-Factor Authentication Reset Lure",
+    "description": "Fake alerts claiming MFA device was deregistered and prompting user to authenticate on a spoofed identity provider.",
+    "indicators": ["credential_harvesting_phrasing", "brand_in_subdomain"]
+  },
+  {
+    "pattern_id": "TP28",
+    "title": "Compromised Vendor Invoice Update",
+    "description": "Emails claiming supplier changed banking accounts, providing updated routing details in a macro-enabled spreadsheet.",
+    "indicators": ["macro_enabled_document", "reply_to_domain_mismatch"]
+  },
+  {
+    "pattern_id": "TP29",
+    "title": "DMARC Authentication Failure Spoof",
+    "description": "Forged brand sender addresses that fail domain cryptographic verification and SPF SPF/DKIM validation.",
+    "indicators": ["dmarc_auth_failure", "spf_auth_failure"]
+  },
+  {
+    "pattern_id": "TP30",
+    "title": "Typosquat Payment Gateway Re-Route",
+    "description": "Domains visually imitating payment processors (e.g. str1pe, paypa1) used to intercept merchant transactions.",
+    "indicators": ["domain_typosquat", "brand_keyword_in_unauthorized_domain"]
+  }
+]

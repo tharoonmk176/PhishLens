@@ -1,0 +1,39 @@
+
+{
+  "manifest_version": 3,
+  "name": "Phish Forensics — Gmail Incident Copilot",
+  "version": "1.0.0",
+  "description": "Explainable Phishing Triage & Auto-Incident-Report Copilot for Gmail.",
+  "permissions": [
+    "identity",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://gmail.googleapis.com/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "oauth2": {
+    "client_id": "1025986184695-dlu7vgn0a3pf47qvd7er0jk2gjau52aj.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content-script.js"],
+      "css": ["sidebar/sidebar.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Phish Forensics Triage",
+    "default_popup": "sidebar/popup.html"
+  }
+}
