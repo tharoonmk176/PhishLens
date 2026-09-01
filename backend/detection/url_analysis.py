@@ -101,7 +101,7 @@ class UrlAnalyzer:
         current_url = url
         for _ in range(max_redirects):
             try:
-                resp = requests.head(current_url, allow_redirects=False, timeout=0.8, headers={'User-Agent': 'Mozilla/5.0 SecurityScanner'})
+                resp = requests.head(current_url, allow_redirects=False, timeout=3.0, headers={'User-Agent': 'Mozilla/5.0 SecurityScanner'})
                 if resp.status_code in [301, 302, 303, 307, 308] and 'Location' in resp.headers:
                     next_url = resp.headers['Location']
                     if not next_url.startswith("http"):

@@ -2,119 +2,89 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Shield, Send, Upload, RefreshCw, Download,
-  AlertTriangle, CheckCircle, ChevronRight, Minus,
-  BarChart2, Clock, Inbox, X
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
+  BarChart3, Clock, Inbox, Copy, Check, Sparkles,
+  Paperclip, Link2, ExternalLink, Search, ShieldAlert, ShieldCheck, Trash2
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 
-// ─── Utility ─────────────────────────────────────────────────────────────────
-const cls = (...classes) => classes.filter(Boolean).join(' ');
+const EMPTY_EMAIL = {
+  from_address: '',
+  from_display_name: '',
+  reply_to: '',
+  subject: '',
+  body_text: '',
+  urls: '',
+  attachments: '',
+  headers_raw: ''
+};
 
-function RiskBadge({ score }) {
-  if (score >= 70) return (
-    <span className="risk-badge risk-high">HIGH RISK · {score}/100</span>
-  );
-  if (score >= 30) return (
-    <span className="risk-badge risk-med">MEDIUM RISK · {score}/100</span>
-  );
-  return (
-    <span className="risk-badge risk-low">LOW RISK · {score}/100</span>
-  );
-}
-
-function ScoreRing({ score }) {
-  const r = 36;
-  const circ = 2 * Math.PI * r;
-  const fill = ((100 - score) / 100) * circ;
-  const color = score >= 70 ? '#ef4444' : score >= 30 ? '#f59e0b' : '#22c55e';
-  return (
-    <div className="score-ring-wrap">
-      <svg width="96" height="96" viewBox="0 0 96 96">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="#1e293b" strokeWidth="8" />
-        <circle
-          cx="48" cy="48" r={r} fill="none"
-          stroke={color} strokeWidth="8"
-          strokeDasharray={circ}
-          strokeDashoffset={fill}
-          strokeLinecap="round"
-          transform="rotate(-90 48 48)"
-          style={{ transition: 'stroke-dashoffset 0.8s ease' }}
-        />
-      </svg>
-      <div className="score-ring-label" style={{ color }}>
-        <span className="score-ring-num">{score}</span>
-        <span className="score-ring-denom">/100</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Field ───────────────────────────────────────────────────────────────────
-function Field({ label, children }) {
-  return (
-    <div className="field">
-      <label className="field-label">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-// ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage] = useState('triage');
-  const [email, setEmail] = useState({
-    from_address: 'security@paypa1-login.com',
-    from_display_name: 'PayPal Security Team',
-    reply_to: 'phish-collector@paypa1-login.com',
-    subject: 'Urgent: Your account will be suspended within 24 hours!',
-    body_text: 'Dear customer, suspicious activities have been detected. Your PayPal account will be permanently suspended unless you verify immediately.\n\nEnter your password and credit card PIN at: http://paypa1-login.com/verify to restore access.',
-    urls: 'http://paypa1-login.com/verify',
-    attachments: 'urgent-invoice.pdf.exe',
-  });
+  const [tab, setTab] = useState('analyze');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [analyzing, setAnalyzing] = useState(false);
+  const [email, setEmail] = useState(EMPTY_EMAIL);
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
+  // Copilot Chat
   const [messages, setMessages] = useState([]);
-  const [query, setQuery] = useState('');
-  const [chatting, setChatting] = useState(false);
-  const chatEndRef = useRef(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef(null);
 
+  // History & Analytics
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (page === 'history') loadHistory();
-    if (page === 'intel') loadStats();
-  }, [page]);
+    if (tab === 'history') loadHistory();
+    if (tab === 'analytics') loadStats();
+  }, [tab]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const clearForm = () => {
+    setEmail(EMPTY_EMAIL);
+    setResult(null);
+    setError('');
+    setMessages([]);
+  };
 
   const setField = (k, v) => setEmail(prev => ({ ...prev, [k]: v }));
 
-  const analyze = async () => {
+  const analyzeEmail = async () => {
     setError('');
-    setAnalyzing(true);
+    setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE}/api/analyze`, {
+      const payload = {
         from_address: email.from_address,
         from_display_name: email.from_display_name,
         reply_to: email.reply_to || null,
         subject: email.subject,
         body_text: email.body_text,
-        urls: email.urls.split('\n').map(s => s.trim()).filter(Boolean),
-        attachments: email.attachments.split('\n').map(s => s.trim()).filter(Boolean).map(f => ({ filename: f })),
-      });
+        headers_raw: email.headers_raw || '',
+        urls: (email.urls || '').split('\n').map(s => s.trim()).filter(Boolean),
+        attachments: (email.attachments || '').split('\n').map(s => s.trim()).filter(Boolean).map(f => ({ filename: f })),
+      };
+
+      const { data } = await axios.post(`${API_BASE}/api/analyze`, payload);
       setResult(data);
-      setMessages([{ role: 'assistant', text: `Scan complete — ${data.classification.replace('_', ' ')} (${data.risk_score}/100). Ask me anything about the results.` }]);
-    } catch (e) {
-      setError(e.response?.data?.error || 'Could not reach backend at ' + API_BASE);
+      setMessages([
+        {
+          role: 'ai',
+          text: `Analysis complete. Risk Score: ${data.risk_score}/100 (${data.classification.replace(/_/g, ' ')}). You can ask me to explain any finding or suggest next steps.`
+        }
+      ]);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Unable to contact backend at ' + API_BASE);
     } finally {
-      setAnalyzing(false);
+      setLoading(false);
     }
   };
 
@@ -122,7 +92,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     setError('');
-    setAnalyzing(true);
+    setLoading(true);
     const fd = new FormData();
     fd.append('file', file);
     try {
@@ -130,405 +100,447 @@ export default function App() {
       setResult(data);
       if (data.extracted_email) {
         const ex = data.extracted_email;
-        setEmail(prev => ({
-          ...prev,
-          from_address: ex.from_address || prev.from_address,
-          from_display_name: ex.from_display_name || prev.from_display_name,
-          reply_to: ex.reply_to || prev.reply_to,
-          subject: ex.subject || prev.subject,
-          body_text: ex.body_text || prev.body_text,
+        setEmail({
+          from_address: ex.from_address || '',
+          from_display_name: ex.from_display_name || '',
+          reply_to: ex.reply_to || '',
+          subject: ex.subject || '',
+          body_text: ex.body_text || '',
           urls: (ex.urls || []).join('\n'),
           attachments: (ex.attachments || []).join('\n'),
-        }));
+          headers_raw: ex.headers_raw || ''
+        });
       }
-      setMessages([{ role: 'assistant', text: `Parsed .eml — ${data.classification.replace('_', ' ')} (${data.risk_score}/100). What would you like to know?` }]);
-    } catch (e) {
-      setError(e.response?.data?.error || 'Failed to parse .eml file.');
+      setMessages([
+        {
+          role: 'ai',
+          text: `Parsed .eml file. Evaluated as ${data.classification.replace(/_/g, ' ')} (${data.risk_score}/100). Ask any questions below.`
+        }
+      ]);
+    } catch (err) {
+      setError('Failed to parse .eml file.');
     } finally {
-      setAnalyzing(false);
+      setLoading(false);
     }
   };
 
-  const sendChat = async (e) => {
-    e.preventDefault();
-    if (!query.trim() || !result) return;
-    const q = query;
-    setQuery('');
-    setMessages(prev => [...prev, { role: 'user', text: q }]);
-    setChatting(true);
+  const sendChatMessage = async (presetText) => {
+    const text = presetText || chatInput;
+    if (!text.trim() || !result) return;
+    if (!presetText) setChatInput('');
+
+    setMessages(prev => [...prev, { role: 'me', text }]);
+    setChatLoading(true);
     try {
       const { data } = await axios.post(`${API_BASE}/api/chat`, {
         message_id: result.message_id,
-        user_message: q,
+        user_message: text,
         analysis_result: result,
       });
-      setMessages(prev => [...prev, { role: 'assistant', text: data.reply }]);
+      setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', text: 'Could not reach the assistant.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'Error contacting security assistant.' }]);
     } finally {
-      setChatting(false);
+      setChatLoading(false);
     }
   };
 
   const loadHistory = async () => {
-    try { const { data } = await axios.get(`${API_BASE}/api/history`); setHistory(data); } catch {}
+    try {
+      const { data } = await axios.get(`${API_BASE}/api/history`);
+      setHistory(data);
+    } catch {}
   };
+
   const loadStats = async () => {
-    try { const { data } = await axios.get(`${API_BASE}/api/dashboard`); setStats(data); } catch {}
+    try {
+      const { data } = await axios.get(`${API_BASE}/api/dashboard`);
+      setStats(data);
+    } catch {}
   };
 
+  const inspectPastItem = (item) => {
+    setTab('analyze');
+    axios.get(`${API_BASE}/api/report?message_id=${encodeURIComponent(item.message_id)}&format=json`)
+      .then(res => {
+        if (res.data?.analysis_result) {
+          setResult(res.data.analysis_result);
+          setMessages([{
+            role: 'ai',
+            text: `Loaded archived scan for ${item.from_address}. Risk score: ${item.risk_score}/100.`
+          }]);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const scoreColor = (score) => score >= 70 ? '#ef4444' : score >= 30 ? '#f59e0b' : '#10b981';
+
   return (
-    <div className="app">
-      {/* ── Sidebar ── */}
-      <nav className="sidebar">
-        <div className="sidebar-logo">
-          <Shield size={20} className="text-blue-400" />
-          <span>Phish Forensics</span>
-        </div>
-
-        <div className="sidebar-nav">
-          <NavItem icon={<Inbox size={16} />} label="Triage" active={page === 'triage'} onClick={() => setPage('triage')} />
-          <NavItem icon={<Clock size={16} />} label="Incident Log" active={page === 'history'} onClick={() => setPage('history')} />
-          <NavItem icon={<BarChart2 size={16} />} label="Threat Intel" active={page === 'intel'} onClick={() => setPage('intel')} />
-        </div>
-
-        <div className="sidebar-footer">
-          <span className="sidebar-badge">Thrive
-          </span>
-        </div>
-      </nav>
-
-      {/* ── Content ── */}
-      <main className="content">
-        {page === 'triage' && (
-          <TriagePage
-            email={email} setField={setField}
-            analyzing={analyzing} result={result}
-            error={error} onAnalyze={analyze} onUpload={uploadEml}
-            messages={messages} query={query} setQuery={setQuery}
-            chatting={chatting} onSendChat={sendChat}
-            chatEndRef={chatEndRef}
-          />
-        )}
-        {page === 'history' && <HistoryPage rows={history} onRefresh={loadHistory} />}
-        {page === 'intel' && <IntelPage stats={stats} onRefresh={loadStats} />}
-      </main>
-    </div>
-  );
-}
-
-function NavItem({ icon, label, active, onClick }) {
-  return (
-    <button className={cls('nav-item', active && 'nav-item-active')} onClick={onClick}>
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
-
-// ─── Triage Page ─────────────────────────────────────────────────────────────
-function TriagePage({ email, setField, analyzing, result, error, onAnalyze, onUpload, messages, query, setQuery, chatting, onSendChat, chatEndRef }) {
-  return (
-    <div className="triage-layout">
-      {/* Left: Input Panel */}
-      <section className="panel input-panel">
-        <div className="panel-header">
-          <h2 className="panel-title">Email Input</h2>
-          <label className="btn-ghost">
-            <Upload size={14} />
-            Upload .eml
-            <input type="file" accept=".eml,.msg" onChange={onUpload} hidden />
-          </label>
-        </div>
-
-        <div className="fields">
-          <Field label="From address">
-            <input className="inp mono" value={email.from_address} onChange={e => setField('from_address', e.target.value)} />
-          </Field>
-
-          <div className="row-2">
-            <Field label="Display name">
-              <input className="inp" value={email.from_display_name} onChange={e => setField('from_display_name', e.target.value)} />
-            </Field>
-            <Field label="Reply-To">
-              <input className="inp mono" value={email.reply_to} onChange={e => setField('reply_to', e.target.value)} />
-            </Field>
+    <div className="app-container">
+      {/* ── Minimal Navbar ── */}
+      <header className="navbar">
+        <div className="nav-brand">
+          <div className="brand-icon">
+            <Shield size={18} strokeWidth={2.4} />
           </div>
-
-          <Field label="Subject">
-            <input className="inp" value={email.subject} onChange={e => setField('subject', e.target.value)} />
-          </Field>
-
-          <Field label="Body">
-            <textarea className="inp mono text-xs" rows={5} value={email.body_text} onChange={e => setField('body_text', e.target.value)} />
-          </Field>
-
-          <div className="row-2">
-            <Field label="URLs (one per line)">
-              <textarea className="inp mono text-xs text-blue-400" rows={3} value={email.urls} onChange={e => setField('urls', e.target.value)} />
-            </Field>
-            <Field label="Attachments">
-              <textarea className="inp mono text-xs text-red-400" rows={3} value={email.attachments} onChange={e => setField('attachments', e.target.value)} />
-            </Field>
-          </div>
+          <span className="brand-title">Phish Guard</span>
+          <span className="brand-sub">PS-02</span>
         </div>
 
-        {error && <p className="error-msg">{error}</p>}
+        <nav className="nav-links">
+          <button
+            className={`nav-btn ${tab === 'analyze' ? 'nav-btn-active' : ''}`}
+            onClick={() => setTab('analyze')}
+          >
+            <Inbox size={14} /> Analyze
+          </button>
+          <button
+            className={`nav-btn ${tab === 'history' ? 'nav-btn-active' : ''}`}
+            onClick={() => setTab('history')}
+          >
+            <Clock size={14} /> History
+          </button>
+          <button
+            className={`nav-btn ${tab === 'analytics' ? 'nav-btn-active' : ''}`}
+            onClick={() => setTab('analytics')}
+          >
+            <BarChart3 size={14} /> Analytics
+          </button>
+        </nav>
 
-        <button className="btn-primary" onClick={onAnalyze} disabled={analyzing}>
-          {analyzing ? <RefreshCw size={15} className="spin" /> : <Shield size={15} />}
-          {analyzing ? 'Analyzing…' : 'Run Forensic Analysis'}
-        </button>
-      </section>
+        <div className="nav-status">
+          <span className="dot-green"></span>
+          <span>Engine Online</span>
+        </div>
+      </header>
 
-      {/* Right: Results + Chat */}
-      <section className="panel results-panel">
-        {!result ? (
-          <EmptyState />
-        ) : (
-          <>
-            <VerdictCard result={result} />
-            <IndicatorList indicators={result.indicators} />
-            <ChatPanel
-              messages={messages} query={query} setQuery={setQuery}
-              chatting={chatting} onSend={onSendChat} chatEndRef={chatEndRef}
-              disabled={!result}
-              messageId={result?.message_id}
-            />
-          </>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="empty-state">
-      <Shield size={40} strokeWidth={1.2} className="text-slate-700" />
-      <p className="empty-title">No analysis yet</p>
-      <p className="empty-sub">Fill in the email fields and click<br /><em>Run Forensic Analysis</em> to begin.</p>
-    </div>
-  );
-}
-
-function VerdictCard({ result }) {
-  const actionColor = result.risk_score >= 70 ? 'text-red-400' : result.risk_score >= 30 ? 'text-amber-400' : 'text-emerald-400';
-  return (
-    <div className="verdict-card">
-      <ScoreRing score={result.risk_score} />
-      <div className="verdict-meta">
-        <RiskBadge score={result.risk_score} />
-        <p className={cls('verdict-action', actionColor)}>{result.recommended_action.replace(/_/g, ' ')}</p>
-        <p className="verdict-id">ID: {result.message_id}</p>
-      </div>
-      <div className="verdict-ioc">
-        <p className="ioc-label">Sender</p>
-        <p className="ioc-val mono">{result.iocs?.sender_address}</p>
-        {result.iocs?.urls?.length > 0 && <>
-          <p className="ioc-label mt-2">Extracted URLs</p>
-          {result.iocs.urls.map((u, i) => <p key={i} className="ioc-val mono text-blue-400">{u}</p>)}
-        </>}
-      </div>
-      <a
-        href={`${API_BASE}/api/report?message_id=${encodeURIComponent(result.message_id)}&format=pdf`}
-        target="_blank"
-        rel="noreferrer"
-        className="btn-ghost ml-auto self-start"
-      >
-        <Download size={13} /> Export PDF
-      </a>
-    </div>
-  );
-}
-
-function IndicatorList({ indicators }) {
-  if (!indicators?.length) return (
-    <div className="no-indicators">
-      <CheckCircle size={14} className="text-emerald-400" />
-      No threat indicators fired.
-    </div>
-  );
-  return (
-    <div className="indicator-section">
-      <p className="section-label">Forensic Indicators <span className="count-badge">{indicators.length}</span></p>
-      <div className="indicator-list">
-        {indicators.map((ind, i) => (
-          <div key={i} className="indicator-row">
-            <div className="indicator-top">
-              <span className="indicator-name">{ind.indicator.replace(/_/g, ' ')}</span>
-              <div className="indicator-weights">
-                <span className="weight-chip">w {ind.weight}</span>
-                <span className="weight-chip">c {ind.confidence}</span>
+      {/* ── Main View ── */}
+      <main className="main-view">
+        {tab === 'analyze' && (
+          <div className="grid-triage">
+            {/* ── Left: Clean Manual Input Card ── */}
+            <div className="card">
+              <div className="card-title-row">
+                <span className="card-title">
+                  <Inbox size={14} className="text-cyan" /> Manual Email Input
+                </span>
+                <div className="flex gap-2">
+                  <button className="preset-btn" onClick={clearForm} title="Clear all fields">
+                    <Trash2 size={12} /> Clear
+                  </button>
+                  <label className="preset-btn cursor-pointer" title="Upload .eml file">
+                    <Upload size={12} /> Upload .eml
+                    <input type="file" accept=".eml,.msg,.txt" onChange={uploadEml} hidden />
+                  </label>
+                </div>
               </div>
-            </div>
-            <p className="indicator-evidence">{ind.evidence}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function ChatPanel({ messages, query, setQuery, chatting, onSend, chatEndRef, disabled }) {
-  return (
-    <div className="chat-panel">
-      <p className="section-label">Security Copilot</p>
-      <div className="chat-messages">
-        {messages.map((m, i) => (
-          <div key={i} className={cls('chat-bubble', m.role === 'user' ? 'bubble-user' : 'bubble-bot')}>
-            {m.text}
-          </div>
-        ))}
-        {chatting && (
-          <div className="bubble-bot chat-bubble typing">
-            <span /><span /><span />
-          </div>
-        )}
-        <div ref={chatEndRef} />
-      </div>
-      <form onSubmit={onSend} className="chat-form">
-        <input
-          className="inp chat-inp"
-          placeholder={disabled ? 'Run analysis first…' : 'Ask about indicators, risks, or actions…'}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          disabled={disabled || chatting}
-        />
-        <button className="btn-icon" type="submit" disabled={disabled || chatting || !query.trim()}>
-          <Send size={15} />
-        </button>
-      </form>
-    </div>
-  );
-}
+              {/* Main Fields */}
+              <div className="input-group">
+                <label className="input-label">Sender Email</label>
+                <input
+                  className="clean-input mono-font"
+                  placeholder="e.g. security@paypal.com"
+                  value={email.from_address}
+                  onChange={e => setField('from_address', e.target.value)}
+                />
+              </div>
 
-// ─── History Page ─────────────────────────────────────────────────────────────
-function HistoryPage({ rows, onRefresh }) {
-  return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Incident Log</h1>
-          <p className="page-sub">All emails analyzed and persisted in DuckDB</p>
-        </div>
-        <button className="btn-ghost" onClick={onRefresh}><RefreshCw size={14} /> Refresh</button>
-      </div>
+              <div className="input-group">
+                <label className="input-label">Subject</label>
+                <input
+                  className="clean-input"
+                  placeholder="Subject line..."
+                  value={email.subject}
+                  onChange={e => setField('subject', e.target.value)}
+                />
+              </div>
 
-      {rows.length === 0 ? (
-        <div className="empty-state"><Clock size={36} strokeWidth={1.2} className="text-slate-700" /><p className="empty-title">No incidents recorded</p><p className="empty-sub">Run a triage scan to populate this log.</p></div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Message ID</th>
-                <th>Sender</th>
-                <th>Subject</th>
-                <th>Score</th>
-                <th>Verdict</th>
-                <th>Action</th>
-                <th>Analyzed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td className="mono text-blue-400">{r.message_id}</td>
-                  <td className="mono">{r.from_address}</td>
-                  <td>{r.subject}</td>
-                  <td className="mono font-semibold">{r.risk_score}/100</td>
-                  <td><RiskBadge score={r.risk_score} /></td>
-                  <td className="mono text-red-400">{r.recommended_action}</td>
-                  <td className="text-slate-500">{r.analyzed_at?.slice(0, 19)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+              <div className="input-group">
+                <label className="input-label">Message Body</label>
+                <textarea
+                  className="clean-input clean-textarea"
+                  rows={4}
+                  placeholder="Paste email content here..."
+                  value={email.body_text}
+                  onChange={e => setField('body_text', e.target.value)}
+                />
+              </div>
 
-// ─── Intel Page ───────────────────────────────────────────────────────────────
-function IntelPage({ stats, onRefresh }) {
-  if (!stats) return (
-    <div className="page">
-      <div className="page-header">
-        <div><h1 className="page-title">Threat Intelligence</h1><p className="page-sub">Aggregate analytics across all incidents</p></div>
-        <button className="btn-ghost" onClick={onRefresh}><RefreshCw size={14} /> Load</button>
-      </div>
-      <div className="empty-state"><BarChart2 size={36} strokeWidth={1.2} className="text-slate-700" /><p className="empty-title">Click Load to fetch stats</p></div>
-    </div>
-  );
+              {/* Expandable Advanced Artifacts */}
+              <div>
+                <button
+                  type="button"
+                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-medium cursor-pointer"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                >
+                  {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showAdvanced ? 'Hide advanced details (URLs, attachments, headers)' : '+ Add URLs, attachments, or auth headers'}
+                </button>
 
-  const high = stats.classifications?.HIGH_RISK || 0;
-  const med  = stats.classifications?.MEDIUM_RISK || 0;
-  const low  = stats.classifications?.LOW_RISK || 0;
-
-  return (
-    <div className="page">
-      <div className="page-header">
-        <div><h1 className="page-title">Threat Intelligence</h1><p className="page-sub">Aggregate analytics across all incidents</p></div>
-        <button className="btn-ghost" onClick={onRefresh}><RefreshCw size={14} /> Refresh</button>
-      </div>
-
-      {/* KPI row */}
-      <div className="kpi-row">
-        <Kpi label="Total Analyzed" value={stats.total_analyzed} />
-        <Kpi label="Avg Risk Score" value={`${stats.average_risk_score}`} sub="/100" accent="amber" />
-        <Kpi label="High Risk" value={high} accent="red" />
-        <Kpi label="Medium Risk" value={med} accent="amber" />
-        <Kpi label="Low Risk" value={low} accent="green" />
-      </div>
-
-      <div className="intel-grid">
-        {/* Top indicators */}
-        <div className="panel">
-          <p className="section-label">Top Fired Indicators</p>
-          <div className="bar-list">
-            {stats.top_indicators?.length ? stats.top_indicators.map((ind, i) => {
-              const max = stats.top_indicators[0]?.count || 1;
-              return (
-                <div key={i} className="bar-row">
-                  <span className="bar-name mono">{ind.indicator.replace(/_/g,' ')}</span>
-                  <div className="bar-track">
-                    <div className="bar-fill" style={{ width: `${(ind.count/max)*100}%` }} />
+                {showAdvanced && (
+                  <div className="flex flex-col gap-3 mt-3 pt-3 border-t border-slate-800">
+                    <div className="input-group">
+                      <label className="input-label">Links / URLs (one per line)</label>
+                      <textarea
+                        className="clean-input mono-font"
+                        rows={2}
+                        placeholder="http://example.com/login"
+                        value={email.urls}
+                        onChange={e => setField('urls', e.target.value)}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Attachment Filenames (one per line)</label>
+                      <textarea
+                        className="clean-input mono-font"
+                        rows={2}
+                        placeholder="invoice.pdf.exe"
+                        value={email.attachments}
+                        onChange={e => setField('attachments', e.target.value)}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Raw Auth Headers</label>
+                      <textarea
+                        className="clean-input mono-font text-xs"
+                        rows={2}
+                        placeholder="Authentication-Results: ..."
+                        value={email.headers_raw}
+                        onChange={e => setField('headers_raw', e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <span className="bar-count">{ind.count}</span>
-                </div>
-              );
-            }) : <p className="empty-sub">No data yet.</p>}
-          </div>
-        </div>
-
-        {/* Top senders */}
-        <div className="panel">
-          <p className="section-label">Frequent Hostile Senders</p>
-          <div className="sender-list">
-            {stats.top_senders?.length ? stats.top_senders.map((s, i) => (
-              <div key={i} className="sender-row">
-                <div>
-                  <p className="sender-addr mono">{s.from_address}</p>
-                  <p className="sender-meta">{s.count} incident{s.count > 1 ? 's' : ''}</p>
-                </div>
-                <span className="risk-num">{s.avg_risk}</span>
+                )}
               </div>
-            )) : <p className="empty-sub">No data yet.</p>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function Kpi({ label, value, sub, accent }) {
-  const color = accent === 'red' ? 'text-red-400' : accent === 'amber' ? 'text-amber-400' : accent === 'green' ? 'text-emerald-400' : 'text-white';
-  return (
-    <div className="kpi-card">
-      <p className="kpi-label">{label}</p>
-      <p className={cls('kpi-value', color)}>{value}<span className="kpi-sub">{sub}</span></p>
+              {error && <div className="p-3 bg-red-950/60 border border-red-800/60 rounded text-red-400 text-xs">{error}</div>}
+
+              <button className="btn-scan" onClick={analyzeEmail} disabled={loading}>
+                {loading ? <RefreshCw size={15} className="spin" /> : <Shield size={15} />}
+                <span>{loading ? 'Scanning Email...' : 'Scan Email for Threats'}</span>
+              </button>
+            </div>
+
+            {/* ── Right: Clean Verdict & AI Copilot ── */}
+            <div className="card">
+              {!result ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-3 text-slate-500">
+                  <ShieldCheck size={44} strokeWidth={1.5} className="text-slate-700" />
+                  <p className="text-sm font-medium text-slate-400">Ready to Analyze</p>
+                  <p className="text-xs max-w-xs text-slate-500">
+                    Select a preset on the left or enter an email, then click <em>Scan Email for Threats</em>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Verdict Banner */}
+                  <div className="verdict-hero-clean">
+                    <div className="text-center">
+                      <div className="text-3xl font-black font-mono" style={{ color: scoreColor(result.risk_score) }}>
+                        {result.risk_score}
+                      </div>
+                      <div className="text-3xs text-slate-500 font-mono font-bold">/ 100 RISK</div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <span className={`score-badge ${result.risk_score >= 70 ? 'score-high' : result.risk_score >= 30 ? 'score-med' : 'score-low'}`}>
+                        {result.classification.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs text-slate-300 font-medium">
+                        Recommended Action: <strong className="text-white font-mono">{result.recommended_action.replace(/_/g, ' ')}</strong>
+                      </span>
+                    </div>
+
+                    <a
+                      href={`${API_BASE}/api/report?message_id=${encodeURIComponent(result.message_id)}&format=pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="preset-btn"
+                    >
+                      <Download size={12} /> PDF
+                    </a>
+                  </div>
+
+                  {/* Key Evidence Reasons */}
+                  <div className="flex flex-col gap-2">
+                    <span className="card-title text-xs">Why was this flagged?</span>
+                    <div className="reasons-list">
+                      {!result.indicators?.length ? (
+                        <div className="reason-card text-emerald-400 text-xs flex items-center gap-2">
+                          <CheckCircle2 size={13} className="text-emerald-400" />
+                          <span>No suspicious indicators found. Sender authentication and link reputations are safe.</span>
+                        </div>
+                      ) : (
+                        result.indicators.map((ind, idx) => (
+                          <div key={idx} className="reason-card">
+                            <span className="reason-title">{ind.indicator.replace(/_/g, ' ')}</span>
+                            <span className="reason-desc">{ind.evidence}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* AI Copilot Chat */}
+                  <div className="chat-container">
+                    <div className="chat-header">
+                      <span className="flex items-center gap-1.5 font-semibold text-slate-200">
+                        <Shield size={13} className="text-cyan" /> Security Copilot
+                      </span>
+                      <span className="text-3xs text-slate-500 font-mono">DuckDB RAG</span>
+                    </div>
+
+                    <div className="chat-history">
+                      {messages.map((m, idx) => (
+                        <div key={idx} className={`bubble ${m.role === 'me' ? 'bubble-me' : 'bubble-ai'}`}>
+                          {m.text}
+                        </div>
+                      ))}
+                      {chatLoading && (
+                        <div className="bubble bubble-ai text-xs text-slate-400 flex items-center gap-1.5">
+                          <RefreshCw size={12} className="spin text-cyan" /> Analyzing context...
+                        </div>
+                      )}
+                      <div ref={chatBottomRef} />
+                    </div>
+
+                    <div className="chat-chips">
+                      <button className="chat-chip" onClick={() => sendChatMessage('Why is this domain suspicious?')}>
+                        <Search size={11} /> Explain domain
+                      </button>
+                      <button className="chat-chip" onClick={() => sendChatMessage('What action should I take?')}>
+                        <Shield size={11} /> Remediation advice
+                      </button>
+                      <button className="chat-chip" onClick={() => sendChatMessage('Are the email headers forged?')}>
+                        <Inbox size={11} /> Check headers
+                      </button>
+                    </div>
+
+                    <form onSubmit={(e) => { e.preventDefault(); sendChatMessage(); }} className="chat-input-bar">
+                      <input
+                        className="chat-input"
+                        placeholder="Ask follow-up questions..."
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        disabled={chatLoading}
+                      />
+                      <button className="chat-send-btn" type="submit" disabled={chatLoading || !chatInput.trim()}>
+                        <Send size={13} />
+                      </button>
+                    </form>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Tab: History ── */}
+        {tab === 'history' && (
+          <div className="card max-w-5xl mx-auto">
+            <div className="card-title-row pb-2 border-b border-slate-800">
+              <span className="card-title">Past Incident Scans</span>
+              <button className="preset-btn" onClick={loadHistory}><RefreshCw size={12} /> Refresh</button>
+            </div>
+
+            <input
+              className="clean-input text-xs"
+              placeholder="Filter by sender or subject..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-mono text-3xs uppercase">
+                    <th className="py-2.5 px-3">Sender</th>
+                    <th className="py-2.5">Subject</th>
+                    <th className="py-2.5">Score</th>
+                    <th className="py-2.5">Verdict</th>
+                    <th className="py-2.5">Date</th>
+                    <th className="py-2.5">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 font-mono">
+                  {history
+                    .filter(h => !search || (h.from_address + h.subject).toLowerCase().includes(search.toLowerCase()))
+                    .map((h, i) => (
+                      <tr key={i} className="hover:bg-slate-800/40">
+                        <td className="py-3 px-3 text-cyan">{h.from_address}</td>
+                        <td className="py-3 text-slate-300 font-sans max-w-xs truncate">{h.subject}</td>
+                        <td className="py-3 font-bold">{h.risk_score}/100</td>
+                        <td className="py-3">
+                          <span className={`score-badge ${h.risk_score >= 70 ? 'score-high' : h.risk_score >= 30 ? 'score-med' : 'score-low'}`}>
+                            {h.classification.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="py-3 text-slate-500">{h.analyzed_at?.slice(0, 10)}</td>
+                        <td className="py-3">
+                          <button className="preset-btn" onClick={() => inspectPastItem(h)}>View</button>
+                        </td>
+                      </tr>
+                    ))}
+                  {history.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-slate-500">No past records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tab: Analytics ── */}
+        {tab === 'analytics' && (
+          <div className="card max-w-5xl mx-auto">
+            <div className="card-title-row pb-2 border-b border-slate-800">
+              <span className="card-title">Threat Telemetry</span>
+              <button className="preset-btn" onClick={loadStats}><RefreshCw size={12} /> Refresh</button>
+            </div>
+
+            {!stats ? (
+              <div className="py-8 text-center text-slate-500">Loading analytics...</div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                    <div className="text-2xs text-slate-400 uppercase font-mono">Total Scanned</div>
+                    <div className="text-2xl font-bold font-mono text-white mt-1">{stats.total_analyzed}</div>
+                  </div>
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                    <div className="text-2xs text-slate-400 uppercase font-mono">Average Risk</div>
+                    <div className="text-2xl font-bold font-mono text-amber-400 mt-1">{stats.average_risk_score} / 100</div>
+                  </div>
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                    <div className="text-2xs text-slate-400 uppercase font-mono">High Risk</div>
+                    <div className="text-2xl font-bold font-mono text-red-400 mt-1">{stats.classifications?.HIGH_RISK || 0}</div>
+                  </div>
+                  <div className="p-4 bg-slate-900 rounded-lg border border-slate-800 text-center">
+                    <div className="text-2xs text-slate-400 uppercase font-mono">Clean Emails</div>
+                    <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">{stats.classifications?.LOW_RISK || 0}</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <span className="card-title text-xs">Top Threat Indicators</span>
+                  <div className="flex flex-col gap-2">
+                    {stats.top_indicators?.map((ind, i) => (
+                      <div key={i} className="flex items-center justify-between p-2.5 bg-slate-900 rounded border border-slate-800 text-xs">
+                        <span className="font-mono text-slate-200">{ind.indicator.replace(/_/g, ' ')}</span>
+                        <span className="font-bold text-cyan">{ind.count} occurrences</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

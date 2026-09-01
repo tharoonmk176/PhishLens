@@ -6,6 +6,25 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.renderers import JSONRenderer, BaseRenderer
+
+class PassthroughRenderer(BaseRenderer):
+    media_type = '*/*'
+    format = 'txt'
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
+
+class PdfRenderer(BaseRenderer):
+    media_type = 'application/pdf'
+    format = 'pdf'
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
+
+class HtmlRenderer(BaseRenderer):
+    media_type = 'text/html'
+    format = 'html'
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 
 from detection.models import EmailInput
 from detection.aggregator import RiskAggregator
@@ -17,7 +36,8 @@ from llm.prompts import (CHAT_SYSTEM_PROMPT, build_chat_prompt,
                          REPORT_SYSTEM_PROMPT, build_report_prompt)
 from gmail_integration.eml_parser import EmlParser
 from gmail_integration.oauth import GmailOAuthHandler
-from .serializers import EmailInputSerializer, ChatRequestSerializer, ReportRequestSerializer
+from .serializers import (EmailInputSerializer, ChatRequestSerializer,
+                          ReportRequestSerializer, GmailAnalyzeRequestSerializer)
 
 SESSION_HISTORY = {}
 
@@ -33,11 +53,18 @@ class AnalyzeEmailView(APIView):
     def post(self, request):
         serializer = EmailInputSerializer(data=request.data)
         if not serializer.is_valid():
+            print(f"\033[31m[API /api/analyze ERROR]\033[0m Invalid payload: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         email_input = EmailInput.from_dict(serializer.validated_data)
+        print(f"\n\033[1;32m[INGESTION]\033[0m Analyzing email from '\033[1m{email_input.from_address}\033[0m' | Subject: '{email_input.subject}'")
+
         analysis_result = aggregator.evaluate(email_input)
         result_dict = analysis_result.to_dict()
+
+        color = "\033[31m" if analysis_result.risk_score >= 70 else ("\033[33m" if analysis_result.risk_score >= 30 else "\033[32m")
+        print(f"  \033[1m↳ Heuristic Evaluation:\033[0m {len(analysis_result.indicators)} indicators fired | Score: {color}{analysis_result.risk_score}/100 ({analysis_result.classification})\033[0m")
+        print(f"  \033[1m↳ Recommended Action:\033[0m \033[1;35m{analysis_result.recommended_action}\033[0m")
 
         top3 = ", ".join([ind.evidence for ind in analysis_result.indicators[:3]])
         emb_text = f"Subject: {email_input.subject}. Indicators: {top3}"
@@ -46,6 +73,7 @@ class AnalyzeEmailView(APIView):
         duckdb_client.save_analysis(result_dict, subject=email_input.subject,
                                     from_address=email_input.from_address,
                                     embedding_bytes=emb_bytes)
+        print(f"  \033[1m↳ DuckDB Store:\033[0m Persisted record & vector embedding for message ID \033[36m{analysis_result.message_id}\033[0m")
         return Response(result_dict, status=status.HTTP_200_OK)
 
 
@@ -65,9 +93,66 @@ class AnalyzeEmlUploadView(APIView):
         else:
             file_bytes = file_obj.read()
 
+        print(f"\n\033[1;32m[EML INGESTION]\033[0m Parsing raw RFC 822 .eml payload ({len(file_bytes)} bytes)...")
         email_input = EmlParser.parse_bytes(file_bytes)
+        print(f"  \033[1m↳ Extracted:\033[0m From='{email_input.from_address}', Subject='{email_input.subject}', URLs={len(email_input.urls)}, Attachments={len(email_input.attachments)}")
+
         analysis_result = aggregator.evaluate(email_input)
         result_dict = analysis_result.to_dict()
+
+        color = "\033[31m" if analysis_result.risk_score >= 70 else ("\033[33m" if analysis_result.risk_score >= 30 else "\033[32m")
+        print(f"  \033[1m↳ Heuristic Evaluation:\033[0m {len(analysis_result.indicators)} indicators fired | Score: {color}{analysis_result.risk_score}/100 ({analysis_result.classification})\033[0m")
+
+        top3 = ", ".join([ind.evidence for ind in analysis_result.indicators[:3]])
+        emb_text = f"Subject: {email_input.subject}. Indicators: {top3}"
+        emb = generate_embedding(emb_text)
+        emb_bytes = serialize_embedding(emb) if emb is not None else None
+        duckdb_client.save_analysis(result_dict, subject=email_input.subject,
+                                    from_address=email_input.from_address,
+                                    embedding_bytes=emb_bytes)
+
+        result_dict["extracted_email"] = {
+            "from_address":      email_input.from_address,
+            "from_display_name": email_input.from_display_name,
+            "subject":           email_input.subject,
+            "reply_to":          email_input.reply_to,
+            "body_text":         email_input.body_text[:1000],
+            "urls":              email_input.urls,
+            "attachments":       [att.filename for att in email_input.attachments],
+        }
+        return Response(result_dict, status=status.HTTP_200_OK)
+
+
+# ── /api/analyze-gmail ───────────────────────────────────────────────────────
+class AnalyzeGmailMessageView(APIView):
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        serializer = GmailAnalyzeRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        access_token = serializer.validated_data["access_token"]
+        message_id   = serializer.validated_data["message_id"]
+
+        print(f"\n\033[1;35m[GMAIL API]\033[0m Fetching raw RFC 822 message '{message_id}' via OAuth token...")
+        from gmail_integration.gmail_api import GmailApiClient
+        client = GmailApiClient(access_token=access_token)
+        email_input = client.fetch_raw_message(message_id)
+
+        if not email_input:
+            print(f"\033[31m[GMAIL API ERROR]\033[0m Failed to fetch message '{message_id}' from Google endpoint.")
+            return Response(
+                {"error": f"Failed to fetch Gmail message '{message_id}'. Ensure access token is valid."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        print(f"  \033[1m↳ Gmail Decoded:\033[0m From='{email_input.from_address}', Subject='{email_input.subject}'")
+        analysis_result = aggregator.evaluate(email_input)
+        result_dict = analysis_result.to_dict()
+
+        color = "\033[31m" if analysis_result.risk_score >= 70 else ("\033[33m" if analysis_result.risk_score >= 30 else "\033[32m")
+        print(f"  \033[1m↳ Heuristic Evaluation:\033[0m Score: {color}{analysis_result.risk_score}/100 ({analysis_result.classification})\033[0m | Action: {analysis_result.recommended_action}")
 
         top3 = ", ".join([ind.evidence for ind in analysis_result.indicators[:3]])
         emb_text = f"Subject: {email_input.subject}. Indicators: {top3}"
@@ -96,11 +181,14 @@ class ChatExplanationView(APIView):
     def post(self, request):
         serializer = ChatRequestSerializer(data=request.data)
         if not serializer.is_valid():
+            print(f"\033[31m[API /api/chat ERROR]\033[0m Invalid payload: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         message_id    = serializer.validated_data["message_id"]
         user_message  = serializer.validated_data["user_message"]
         analysis_result = serializer.validated_data.get("analysis_result")
+
+        print(f"\n\033[1;34m[COPILOT CHAT]\033[0m User query on message \033[36m{message_id}\033[0m: \"\033[1m{user_message}\033[0m\"")
 
         if not analysis_result:
             stored = duckdb_client.get_analysis(message_id)
@@ -116,6 +204,7 @@ class ChatExplanationView(APIView):
         # RAG retrieval over threat patterns and past incidents in DuckDB
         query = f"{user_message} {json.dumps(analysis_result.get('indicators', []))}"
         rag_snippets = rag_retriever.retrieve_relevant_context(query, top_k=3)
+        print(f"  \033[1m↳ DuckDB RAG Context:\033[0m Retrieved {len(rag_snippets)} relevant threat signatures.")
         
         # Build prompt injecting session_history and rag_snippets
         user_prompt = build_chat_prompt(analysis_result, rag_snippets, history, user_message)
@@ -132,6 +221,7 @@ class ChatExplanationView(APIView):
         try:
             duckdb_client.save_chat_turn(message_id, turn_idx, "user", user_message)
             duckdb_client.save_chat_turn(message_id, turn_idx + 1, "assistant", reply_text)
+            print(f"  \033[1m↳ Chat Persistence:\033[0m Turn {turn_idx//2 + 1} saved to DuckDB chat history.")
         except Exception:
             pass
 
@@ -145,6 +235,15 @@ class ChatExplanationView(APIView):
 # ── /api/report ───────────────────────────────────────────────────────────────
 class GenerateReportView(APIView):
     parser_classes = [JSONParser]
+    renderer_classes = [JSONRenderer, PdfRenderer, HtmlRenderer, PassthroughRenderer]
+
+    def perform_content_negotiation(self, request, force=False):
+        fmt = request.query_params.get("format", "json")
+        if fmt == "pdf":
+            return PdfRenderer(), "application/pdf"
+        elif fmt == "html":
+            return HtmlRenderer(), "text/html"
+        return JSONRenderer(), "application/json"
 
     def get(self, request):
         return self._handle(request)

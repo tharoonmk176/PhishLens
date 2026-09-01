@@ -1,7 +1,7 @@
 
 {
   "manifest_version": 3,
-  "name": "Phish Forensics — Gmail Incident Copilot",
+  "name": "Phish Forensics Triage",
   "version": "1.0.0",
   "description": "Explainable Phishing Triage & Auto-Incident-Report Copilot for Gmail.",
   "permissions": [

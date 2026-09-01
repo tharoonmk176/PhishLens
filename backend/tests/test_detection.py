@@ -42,3 +42,35 @@ def test_legitimate_email():
     result = aggregator.evaluate(email_input)
     assert result.risk_score < 30, f"Expected LOW_RISK score < 30, got {result.risk_score}"
     assert result.classification == "LOW_RISK"
+
+def test_legitimate_github_not_flagged_as_gitlab():
+    aggregator = RiskAggregator()
+    email_input = EmailInput(
+        message_id="test-legit-gh-001",
+        from_address="notifications@github.com",
+        from_display_name="GitHub",
+        subject="[GitHub] A new release was published",
+        body_text="A new release v1.0.0 is available on GitHub.",
+        urls=["https://github.com/org/repo/releases"],
+        attachments=[]
+    )
+    result = aggregator.evaluate(email_input)
+    assert result.risk_score < 30
+    assert result.classification == "LOW_RISK"
+    ind_names = [ind.indicator for ind in result.indicators]
+    assert "domain_typosquat" not in ind_names
+
+def test_visual_substitution_amaz0n_detected():
+    aggregator = RiskAggregator()
+    email_input = EmailInput(
+        message_id="test-phish-amz-001",
+        from_address="security@amaz0n-security-portal.com",
+        from_display_name="Amazon Customer Security",
+        subject="Suspicious sign-in detected on your Amazon account",
+        body_text="Sign-in attempt detected. Verify your account at http://amaz0n-security-portal.com/auth within 24 hours.",
+        urls=["http://amaz0n-security-portal.com/auth"],
+        attachments=[]
+    )
+    result = aggregator.evaluate(email_input)
+    assert result.risk_score >= 70
+    assert result.classification == "HIGH_RISK"

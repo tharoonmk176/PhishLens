@@ -1,39 +1,93 @@
+/* ── Phish Forensics Extension Sidebar — Matched to Dashboard Design System ── */
 #phish-forensics-root {
   position: fixed;
-  top: 70px;
+  top: 64px;
   right: 20px;
-  width: 380px;
-  max-height: 85vh;
-  background: #0f172a;
-  color: #f8fafc;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-  border: 1px solid #334155;
-  z-index: 999999;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 420px;
+  max-height: 88vh;
+  background: #0b0f19;
+  color: #f1f5f9;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 9999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-size: 13px;
-  transition: all 0.3s ease;
+  font-size: 12.5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(16px);
 }
 
 #phish-forensics-header {
   padding: 12px 16px;
-  background: #1e293b;
-  border-bottom: 1px solid #334155;
+  background: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.pf-title {
-  font-weight: 700;
-  font-size: 14px;
+.pf-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.pf-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(14, 165, 233, 0.05));
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #38bdf8;
+}
+
+.pf-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-brand-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.pf-brand-sub {
+  font-size: 9.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pf-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pf-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.pf-ctrl-btn:hover {
+  background: #1e293b;
+  color: #fff;
 }
 
 #phish-forensics-body {
@@ -43,85 +97,365 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: #070a11;
+}
+
+/* ── Triage Trigger Card ── */
+.pf-action-card {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-btn-primary {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: white;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.pf-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
+}
+
+.pf-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pf-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pf-btn-ghost:hover {
+  background: #1a243b;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Verdict Summary Hero ── */
+.pf-verdict-hero {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pf-verdict-hero-high::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #ef4444; }
+.pf-verdict-hero-med::before  { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #f59e0b; }
+.pf-verdict-hero-low::before  { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #10b981; }
+
+.pf-gauge-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.pf-gauge-svg { transform: rotate(-90deg); }
+.pf-gauge-bg { fill: none; stroke: #1e293b; stroke-width: 8; }
+.pf-gauge-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+
+.pf-gauge-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pf-gauge-num { font-size: 20px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1; }
+.pf-gauge-lbl { font-size: 8.5px; color: #64748b; font-weight: 600; font-family: ui-monospace, monospace; }
+
+.pf-verdict-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
 }
 
 .pf-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 2px 8px;
   border-radius: 9999px;
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  width: fit-content;
 }
 
-.pf-high { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
-.pf-med { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
-.pf-low { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+.pf-high { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+.pf-med  { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+.pf-low  { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
 
-.pf-indicator-card {
-  background: #1e293b;
-  border-radius: 8px;
-  padding: 10px;
-  border-left: 3px solid #38bdf8;
+.pf-action-text {
+  font-size: 10.5px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #e2e8f0;
 }
 
-.pf-chat-box {
-  background: #090d16;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 10px;
+.pf-iocs-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.pf-ioc-chip {
+  background: #070a11;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: #94a3b8;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Section Title ── */
+.pf-sec-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.pf-count-badge {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+/* ── Indicators List ── */
+.pf-indicators-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   max-height: 180px;
   overflow-y: auto;
+}
+
+.pf-ind-card {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pf-ind-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pf-ind-module {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748b;
+  font-family: ui-monospace, monospace;
+}
+
+.pf-ind-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  font-family: ui-monospace, monospace;
+}
+
+.pf-ind-metrics {
+  font-size: 9.5px;
+  font-family: ui-monospace, monospace;
+  color: #64748b;
+}
+
+.pf-ind-evidence {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* ── Security Copilot Terminal in Extension ── */
+.pf-copilot-card {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pf-copilot-hdr {
+  padding: 8px 12px;
+  background: #0b0f19;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.pf-copilot-chat {
+  background: #070a11;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
 .pf-msg-user {
-  background: #2563eb;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
   color: #fff;
   padding: 6px 10px;
-  border-radius: 8px 8px 0 8px;
+  border-radius: 8px 8px 2px 8px;
   align-self: flex-end;
   max-width: 85%;
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .pf-msg-bot {
-  background: #1e293b;
+  background: #111827;
   color: #cbd5e1;
   padding: 6px 10px;
-  border-radius: 8px 8px 8px 0;
+  border-radius: 8px 8px 8px 2px;
   align-self: flex-start;
   max-width: 90%;
-  border-left: 2px solid #38bdf8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #38bdf8;
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
-.pf-btn {
-  background: #0284c7;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+.pf-quick-chips {
+  padding: 6px 10px;
+  background: #0b0f19;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
 }
-.pf-btn:hover { background: #0369a1; }
-.pf-btn-danger { background: #dc2626; }
-.pf-btn-danger:hover { background: #b91c1c; }
+
+.pf-chip {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 2px 7px;
+  color: #94a3b8;
+  font-size: 9.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pf-chip:hover {
+  background: #1a243b;
+  color: #fff;
+  border-color: rgba(56, 189, 248, 0.4);
+}
 
 .pf-input-row {
   display: flex;
   gap: 6px;
+  padding: 8px 10px;
+  background: #111827;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .pf-input {
   flex: 1;
-  background: #1e293b;
-  border: 1px solid #475569;
+  background: #070a11;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
-  padding: 6px 10px;
+  padding: 6px 9px;
   border-radius: 6px;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.pf-input:focus { border-color: #38bdf8; }
+
+.pf-send-btn {
+  background: #0284c7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-send-btn:hover { background: #0369a1; }
+
+.pf-spin { animation: pf-spin 0.8s linear infinite; }
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+
+#phish-forensics-body::-webkit-scrollbar,
+.pf-indicators-container::-webkit-scrollbar,
+.pf-copilot-chat::-webkit-scrollbar {
+  width: 4px;
+}
+#phish-forensics-body::-webkit-scrollbar-thumb,
+.pf-indicators-container::-webkit-scrollbar-thumb,
+.pf-copilot-chat::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }

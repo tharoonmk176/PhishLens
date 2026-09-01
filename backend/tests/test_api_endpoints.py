@@ -40,6 +40,34 @@ Immediate action required. Please verify at http://paypa1-login.com/verify
     assert data["classification"] == "HIGH_RISK"
     assert "extracted_email" in data
 
+def test_api_analyze_gmail_endpoint(client, monkeypatch):
+    from detection.models import EmailInput
+    from gmail_integration.gmail_api import GmailApiClient
+
+    def mock_fetch(self, message_id):
+        return EmailInput(
+            message_id=message_id,
+            from_address="security@paypa1-login.com",
+            from_display_name="PayPal",
+            subject="Urgent Security Alert",
+            body_text="Verify password immediately at http://paypa1-login.com/verify",
+            urls=["http://paypa1-login.com/verify"]
+        )
+
+    monkeypatch.setattr(GmailApiClient, "fetch_raw_message", mock_fetch)
+
+    response = client.post(
+        "/api/analyze-gmail",
+        data=json.dumps({"access_token": "mock_token_123", "message_id": "gmail_msg_999"}),
+        content_type="application/json"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message_id"] == "gmail_msg_999"
+    assert data["risk_score"] >= 70
+    assert data["classification"] == "HIGH_RISK"
+    assert "extracted_email" in data
+
 def test_api_chat_endpoint_multi_turn(client):
     # 1. Analyze an email first
     analyze_payload = {

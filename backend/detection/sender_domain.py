@@ -111,10 +111,28 @@ class SenderDomainAnalyzer:
         if not sender_reg_domain:
             return indicators
         
+        sender_reg_lower = sender_reg_domain.lower()
+
+        # If sender domain is an exact legitimate domain for ANY brand in our knowledge base,
+        # it is recognized as genuine and should not be falsely flagged as a typosquat of another brand.
+        for brand_entry in self.brands:
+            for legit in brand_entry.get("legitimate_domains", []):
+                if legit:
+                    legit_reg = get_registrable_domain(legit).lower()
+                    if sender_reg_lower == legit_reg or sender_reg_lower.endswith("." + legit_reg):
+                        return indicators
+
         sender_base = sender_reg_domain.split(".")[0] if "." in sender_reg_domain else sender_reg_domain
         
         # Check normalized confusable substitutions
         normalized_variants = [sender_base]
+        full_normalized = sender_base
+        for src, dst in VISUAL_SUBSTITUTIONS.items():
+            if src in full_normalized:
+                full_normalized = full_normalized.replace(src, dst)
+        if full_normalized not in normalized_variants:
+            normalized_variants.append(full_normalized)
+
         for src, dst in VISUAL_SUBSTITUTIONS.items():
             if src in sender_base:
                 normalized_variants.append(sender_base.replace(src, dst))
@@ -123,10 +141,6 @@ class SenderDomainAnalyzer:
             brand_name = brand_entry["brand"]
             legit_domains = brand_entry.get("legitimate_domains", [])
             keywords = brand_entry.get("keywords", [])
-
-            # If sender domain is an exact legitimate domain, no typosquatting
-            if any(sender_reg_domain == legit.lower() or sender_reg_domain.endswith("." + legit.lower()) for legit in legit_domains if legit):
-                continue
 
             for legit in legit_domains:
                 if not legit:
@@ -166,7 +180,13 @@ class SenderDomainAnalyzer:
                     break
 
                 # Check keyword combo like paypal-security or paypa1-login
-                if any(kw in sender_base for kw in keywords if len(kw) >= 3) and sender_reg_domain not in legit_domains:
+                kw_match = any(
+                    (kw.lower() in variant.lower() or kw.lower() in sender_base.lower())
+                    for variant in normalized_variants
+                    for kw in keywords
+                    if len(kw) >= 3
+                )
+                if kw_match and sender_reg_domain not in legit_domains:
                     indicators.append(Indicator(
                         module="sender_domain",
                         indicator="brand_keyword_in_unauthorized_domain",
@@ -227,7 +247,7 @@ class SenderDomainAnalyzer:
             return indicators
 
         try:
-            resp = requests.get(f"https://rdap.org/domain/{domain}", timeout=0.8)
+            resp = requests.get(f"https://rdap.org/domain/{domain}", timeout=3.0)
             if resp.status_code == 200:
                 data = resp.json()
                 events = data.get("events", [])

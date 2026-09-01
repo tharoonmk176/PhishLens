@@ -25,3 +25,7 @@ class ChatRequestSerializer(serializers.Serializer):
 class ReportRequestSerializer(serializers.Serializer):
     message_id = serializers.CharField(required=True)
     analysis_result = serializers.DictField(required=False)
+
+class GmailAnalyzeRequestSerializer(serializers.Serializer):
+    access_token = serializers.CharField(required=True)
+    message_id = serializers.CharField(required=True)

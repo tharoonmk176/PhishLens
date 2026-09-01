@@ -24,6 +24,7 @@ dist/
 
 # Documentation and prompt files to exclude
 phish-forensics-master-prompt-v3.md
+phish-forensics-overview(1).md
 problem-statement.md
 problem statements.pdf
 *.pdf

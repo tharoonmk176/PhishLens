@@ -9,7 +9,7 @@ DB_FILE_PATH = os.environ.get("PHISH_DB_PATH", os.path.join(os.path.dirname(os.p
 
 class DuckDBClient:
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __new__(cls):
         with cls._lock:

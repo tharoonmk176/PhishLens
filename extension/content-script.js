@@ -14,45 +14,98 @@
     root.id = "phish-forensics-root";
     root.innerHTML = `
       <div id="phish-forensics-header">
-        <div class="pf-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Phish Forensics Copilot
+        <div class="pf-brand">
+          <div class="pf-icon-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="pf-brand-text">
+            <span class="pf-brand-name">Phish Forensics</span>
+            <span class="pf-brand-sub">SIH-2026 · PS-02 COPILOT</span>
+          </div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="pf-min-btn" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">−</button>
-          <button id="pf-close-btn" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">✕</button>
+        <div class="pf-hdr-actions">
+          <button id="pf-min-btn" class="pf-ctrl-btn" title="Minimize">−</button>
+          <button id="pf-close-btn" class="pf-ctrl-btn" title="Close">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       </div>
       <div id="phish-forensics-body">
-        <div id="pf-triage-card">
-          <button id="pf-scan-now-btn" class="pf-btn" style="width:100%;">
-            ⚡ Scan Open Email Forensic Data
+        <div class="pf-action-card">
+          <button id="pf-scan-now-btn" class="pf-btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Scan Open Email Forensics</span>
           </button>
-          <div id="pf-extracted-preview" style="display:none; font-size:11px; color:#94a3b8; margin-top:8px; background:#1e293b; padding:8px; border-radius:6px; word-break:break-all;">
-            <div><b>Sender:</b> <span id="pf-prev-sender"></span></div>
-            <div><b>Subject:</b> <span id="pf-prev-subject"></span></div>
-            <div><b>URLs Found:</b> <span id="pf-prev-urls"></span></div>
+          <div id="pf-extracted-preview" style="display:none; font-size:10.5px; color:#94a3b8; background:#070a11; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); word-break:break-all;">
+            <div><b style="color:#64748b;">SENDER:</b> <span id="pf-prev-sender" style="color:#e2e8f0; font-family:monospace;"></span></div>
+            <div style="margin-top:2px;"><b style="color:#64748b;">SUBJECT:</b> <span id="pf-prev-subject" style="color:#cbd5e1;"></span></div>
+            <div style="margin-top:2px;"><b style="color:#64748b;">DETECTED URLS:</b> <span id="pf-prev-urls" style="color:#38bdf8; font-family:monospace;"></span></div>
           </div>
         </div>
-        <div id="pf-result-view" style="display:none; flex-direction:column; gap:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div id="pf-score-badge" class="pf-badge pf-high">RISK SCORE: 0/100</div>
-            <div id="pf-action-text" style="font-weight:700; color:#f87171;">BLOCK_SENDER</div>
+
+        <div id="pf-result-view" style="display:none; flex-direction:column; gap:12px;">
+          <!-- Radial Gauge Verdict Hero -->
+          <div id="pf-verdict-card" class="pf-verdict-hero pf-verdict-hero-high">
+            <div class="pf-gauge-wrap">
+              <svg class="pf-gauge-svg" width="80" height="80" viewBox="0 0 80 80">
+                <circle class="pf-gauge-bg" cx="40" cy="40" r="32" />
+                <circle id="pf-gauge-arc" class="pf-gauge-fill" cx="40" cy="40" r="32" stroke="#ef4444" stroke-dasharray="201.06" stroke-dashoffset="0" />
+              </svg>
+              <div class="pf-gauge-text">
+                <span id="pf-gauge-score-val" class="pf-gauge-num" style="color:#ef4444;">0</span>
+                <span class="pf-gauge-lbl">/100 RISK</span>
+              </div>
+            </div>
+            <div class="pf-verdict-info">
+              <span id="pf-score-badge" class="pf-badge pf-high">HIGH RISK</span>
+              <span id="pf-action-text" class="pf-action-text">ACTION: BLOCK SENDER</span>
+              <div id="pf-iocs-container" class="pf-iocs-wrap"></div>
+            </div>
           </div>
-          <div style="font-weight:600; font-size:12px; color:#94a3b8;">FIRED FORENSIC INDICATORS:</div>
-          <div id="pf-indicators-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;"></div>
+
+          <!-- Indicators List -->
+          <div>
+            <div class="pf-sec-title">
+              <span>Triggered Indicators</span>
+              <span id="pf-ind-count" class="pf-count-badge">0</span>
+            </div>
+            <div id="pf-indicators-list" class="pf-indicators-container" style="margin-top:6px;"></div>
+          </div>
           
-          <div style="font-weight:600; font-size:12px; color:#94a3b8; margin-top:4px;">ASSISTANT EXPLANATION & CHAT:</div>
-          <div id="pf-chat-messages" class="pf-chat-box">
-            <div class="pf-msg-bot">Forensic scan complete. Ask any questions regarding indicators or threats.</div>
+          <!-- Copilot AI Terminal -->
+          <div class="pf-copilot-card">
+            <div class="pf-copilot-hdr">
+              <span style="display:flex; align-items:center; gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Security Copilot
+              </span>
+              <span style="font-size:9.5px; color:#64748b; font-family:monospace;">DuckDB RAG</span>
+            </div>
+            <div id="pf-chat-messages" class="pf-copilot-chat">
+              <div class="pf-msg-bot">Scan complete. Ask questions about this incident or request containment advice.</div>
+            </div>
+            <div class="pf-quick-chips">
+              <button class="pf-chip" onclick="window.__pfSendQuickChat('Why is this domain flagged?')">Explain domain</button>
+              <button class="pf-chip" onclick="window.__pfSendQuickChat('What containment action is recommended?')">Containment</button>
+              <button class="pf-chip" onclick="window.__pfSendQuickChat('Explain the SPF/DKIM headers.')">Headers</button>
+            </div>
+            <div class="pf-input-row">
+              <input id="pf-chat-input" class="pf-input" placeholder="Ask follow-up questions..." />
+              <button id="pf-send-chat-btn" class="pf-send-btn">Send</button>
+            </div>
           </div>
-          <div class="pf-input-row">
-            <input id="pf-chat-input" class="pf-input" placeholder="Why is this email dangerous?" />
-            <button id="pf-send-chat-btn" class="pf-btn">Send</button>
+
+          <!-- Bottom Action Buttons -->
+          <div style="display:flex; gap:8px;">
+            <button id="pf-download-report-btn" class="pf-btn-ghost" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export PDF Report</span>
+            </button>
+            <a href="http://localhost:5173" target="_blank" class="pf-btn-ghost" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <span>Open Dashboard</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
           </div>
-          <button id="pf-download-report-btn" class="pf-btn" style="background:#475569;">
-            📄 Download Incident Report
-          </button>
         </div>
       </div>
     `;
@@ -198,56 +251,140 @@
     }
 
     try {
-      const resp = await fetch("http://localhost:8000/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emailData)
-      });
+      let analysisData = null;
 
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}: ${await resp.text()}`);
+      // 1. Attempt Gmail API fetch via OAuth token if available
+      try {
+        const authResp = await new Promise(resolve => {
+          chrome.runtime.sendMessage({ action: "getAuthToken", interactive: false }, resolve);
+        });
+
+        const openMsgEl = document.querySelector("[data-legacy-message-id], [data-message-id]");
+        const legacyId = openMsgEl ? (openMsgEl.getAttribute("data-legacy-message-id") || openMsgEl.getAttribute("data-message-id")) : null;
+
+        if (authResp && authResp.success && authResp.token && legacyId) {
+          const gResp = await fetch("http://localhost:8000/api/analyze-gmail", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: authResp.token, message_id: legacyId })
+          });
+          if (gResp.ok) {
+            analysisData = await gResp.json();
+          }
+        }
+      } catch (oauthErr) {
+        // Fall back to direct DOM analysis
       }
 
-      const data = await resp.json();
-      currentAnalysis = data;
-      renderAnalysis(data);
+      // 2. Direct DOM fallback analysis
+      if (!analysisData) {
+        const resp = await fetch("http://localhost:8000/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(emailData)
+        });
+
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}: ${await resp.text()}`);
+        }
+        analysisData = await resp.json();
+      }
+
+      currentAnalysis = analysisData;
+      renderAnalysis(analysisData);
     } catch (err) {
       alert("Phish Forensics Error: Ensure backend is running at http://localhost:8000.\n\nDetails: " + err.message);
     } finally {
-      scanBtn.innerText = "⚡ Scan Open Email Forensic Data";
+      scanBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Scan Open Email Forensics</span>
+      `;
       scanBtn.disabled = false;
     }
   }
 
   function renderAnalysis(data) {
     document.getElementById("pf-result-view").style.display = "flex";
+
+    const score = data.risk_score || 0;
+    const scoreColor = score >= 70 ? "#ef4444" : (score >= 30 ? "#f59e0b" : "#10b981");
+    const heroClass = score >= 70 ? "pf-verdict-hero-high" : (score >= 30 ? "pf-verdict-hero-med" : "pf-verdict-hero-low");
+
+    const vCard = document.getElementById("pf-verdict-card");
+    vCard.className = "pf-verdict-hero " + heroClass;
+
+    // 1. Update Radial Gauge
+    const scoreVal = document.getElementById("pf-gauge-score-val");
+    scoreVal.innerText = score;
+    scoreVal.style.color = scoreColor;
+
+    const arc = document.getElementById("pf-gauge-arc");
+    const circ = 201.06; // 2 * pi * 32
+    const offset = circ - (score / 100) * circ;
+    arc.setAttribute("stroke", scoreColor);
+    arc.style.strokeDashoffset = offset;
+
+    // 2. Badges & Actions
     const badge = document.getElementById("pf-score-badge");
-    badge.innerText = `RISK SCORE: ${data.risk_score}/100`;
-    badge.className = "pf-badge " + (data.risk_score >= 70 ? "pf-high" : (data.risk_score >= 30 ? "pf-med" : "pf-low"));
+    badge.innerText = data.classification.replace(/_/g, " ");
+    badge.className = "pf-badge " + (score >= 70 ? "pf-high" : (score >= 30 ? "pf-med" : "pf-low"));
 
     const actionText = document.getElementById("pf-action-text");
-    actionText.innerText = data.recommended_action;
-    actionText.style.color = data.risk_score >= 70 ? "#f87171" : (data.risk_score >= 30 ? "#fbbf24" : "#4ade80");
+    actionText.innerText = "ACTION: " + (data.recommended_action || "REVIEW").replace(/_/g, " ");
 
+    // 3. IOC Chips
+    const iocsWrap = document.getElementById("pf-iocs-container");
+    iocsWrap.innerHTML = "";
+    if (data.iocs?.sender_address) {
+      const chip = document.createElement("span");
+      chip.className = "pf-ioc-chip";
+      chip.innerText = "From: " + data.iocs.sender_address;
+      iocsWrap.appendChild(chip);
+    }
+    if (data.iocs?.domains?.length > 0) {
+      data.iocs.domains.slice(0, 2).forEach(d => {
+        const chip = document.createElement("span");
+        chip.className = "pf-ioc-chip";
+        chip.innerText = "Host: " + d;
+        iocsWrap.appendChild(chip);
+      });
+    }
+
+    // 4. Indicator List
+    const indCount = document.getElementById("pf-ind-count");
     const indList = document.getElementById("pf-indicators-list");
     indList.innerHTML = "";
+
     if (!data.indicators || data.indicators.length === 0) {
-      indList.innerHTML = "<div style='color:#94a3b8; font-size:12px; padding:6px;'>No suspicious threat indicators triggered. Email appears legitimate.</div>";
+      indCount.innerText = "0";
+      indList.innerHTML = "<div style='color:#10b981; font-size:11px; padding:8px; background:rgba(16,185,129,0.1); border-radius:6px; border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; gap:6px;'><svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polyline points='20 6 9 17 4 12'/></svg><span>No suspicious indicators triggered. Message verified clean.</span></div>";
     } else {
+      indCount.innerText = String(data.indicators.length);
       data.indicators.forEach(ind => {
         const item = document.createElement("div");
-        item.className = "pf-indicator-card";
+        item.className = "pf-ind-card";
         item.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:700; color:#38bdf8; font-family:monospace;">${ind.indicator}</span>
-            <span style="font-size:10px; color:#94a3b8; font-family:monospace;">Weight: ${ind.weight}</span>
+          <div class="pf-ind-top">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="pf-ind-module">${(ind.module || "HEURISTIC").replace(/_/g, " ")}</span>
+              <span class="pf-ind-name">${(ind.indicator || "").replace(/_/g, " ")}</span>
+            </div>
+            <span class="pf-ind-metrics">wt: ${ind.weight}</span>
           </div>
-          <div style="font-size:11px; color:#cbd5e1; margin-top:3px; line-height:1.4;">${ind.evidence}</div>
+          <div class="pf-ind-evidence">${ind.evidence}</div>
         `;
         indList.appendChild(item);
       });
     }
   }
+
+  window.__pfSendQuickChat = function(promptText) {
+    const input = document.getElementById("pf-chat-input");
+    if (input) {
+      input.value = promptText;
+      sendChatMessage();
+    }
+  };
 
   async function sendChatMessage() {
     const input = document.getElementById("pf-chat-input");
@@ -263,6 +400,12 @@
     chatBox.appendChild(userBubble);
     chatBox.scrollTop = chatBox.scrollHeight;
 
+    const loadingBubble = document.createElement("div");
+    loadingBubble.className = "pf-msg-bot";
+    loadingBubble.innerText = "Synthesizing forensic explanation...";
+    chatBox.appendChild(loadingBubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
     try {
       const resp = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -274,16 +417,10 @@
         })
       });
       const data = await resp.json();
-      const botBubble = document.createElement("div");
-      botBubble.className = "pf-msg-bot";
-      botBubble.innerText = data.reply;
-      chatBox.appendChild(botBubble);
+      loadingBubble.innerText = data.reply || "No reply generated.";
       chatBox.scrollTop = chatBox.scrollHeight;
     } catch (err) {
-      const errBubble = document.createElement("div");
-      errBubble.className = "pf-msg-bot";
-      errBubble.innerText = "Error contacting assistant: " + err.message;
-      chatBox.appendChild(errBubble);
+      loadingBubble.innerText = "Error contacting security copilot: " + err.message;
     }
   }
 
