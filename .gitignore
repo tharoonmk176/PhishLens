@@ -21,3 +21,7 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Documentation and prompt files to exclude
+phish-forensics-master-prompt-v3.md
+problem-statement.md
