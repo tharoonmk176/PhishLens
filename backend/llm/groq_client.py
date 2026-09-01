@@ -8,16 +8,16 @@ class GroqClient(LlmClient):
         self.model = model
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        try:
-            chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                model=self.model,
-                temperature=0.2,
-                max_tokens=1024,
-            )
-            return chat_completion.choices[0].message.content or ""
-        except Exception as e:
-            return f"Error connecting to Groq API: {str(e)}. (Forensic verdict is safe & deterministic)."
+        chat_completion = self.client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            model=self.model,
+            temperature=0.2,
+            max_tokens=1024,
+        )
+        content = chat_completion.choices[0].message.content
+        if content:
+            return content.strip()
+        raise RuntimeError("Empty response received from Groq API.")

@@ -11,9 +11,8 @@ class GeminiClient(LlmClient):
         )
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        try:
-            full_prompt = f"System Instructions:\n{system_prompt}\n\nUser Request:\n{user_prompt}"
-            response = self.model.generate_content(full_prompt)
-            return response.text or ""
-        except Exception as e:
-            return f"Error querying Gemini API: {str(e)}."
+        full_prompt = f"System:\n{system_prompt}\n\n{user_prompt}"
+        response = self.model.generate_content(full_prompt)
+        if response and response.text:
+            return response.text.strip()
+        raise RuntimeError("Empty response received from Gemini API.")

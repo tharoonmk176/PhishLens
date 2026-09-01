@@ -33,7 +33,7 @@ class EmailInput:
             for att in attachments_data
         ]
         return cls(
-            message_id=str(data.get("message_id", "")),
+            message_id=str(data.get("message_id", "")),#
             from_address=str(data.get("from_address", "")),
             from_display_name=str(data.get("from_display_name", "")),
             reply_to=data.get("reply_to"),

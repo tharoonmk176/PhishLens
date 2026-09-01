@@ -19,7 +19,6 @@ from gmail_integration.eml_parser import EmlParser
 from gmail_integration.oauth import GmailOAuthHandler
 from .serializers import EmailInputSerializer, ChatRequestSerializer, ReportRequestSerializer
 
-# In-memory session history store keyed by message_id
 SESSION_HISTORY = {}
 
 aggregator     = RiskAggregator()
@@ -107,26 +106,46 @@ class ChatExplanationView(APIView):
             stored = duckdb_client.get_analysis(message_id)
             analysis_result = stored or {"message_id": message_id, "risk_score": 0, "indicators": []}
 
-        query       = f"{user_message} {json.dumps(analysis_result.get('indicators', []))}"
+        # Multi-turn history: Retrieve stored turns
+        history = SESSION_HISTORY.get(message_id, [])
+        if not history:
+            db_history = duckdb_client.get_chat_history(message_id)
+            if db_history:
+                history = db_history
+
+        # RAG retrieval over threat patterns and past incidents in DuckDB
+        query = f"{user_message} {json.dumps(analysis_result.get('indicators', []))}"
         rag_snippets = rag_retriever.retrieve_relevant_context(query, top_k=3)
-        history     = SESSION_HISTORY.get(message_id, [])
+        
+        # Build prompt injecting session_history and rag_snippets
         user_prompt = build_chat_prompt(analysis_result, rag_snippets, history, user_message)
 
         reply_text = get_llm_client().generate(CHAT_SYSTEM_PROMPT, user_prompt)
 
-        history.append({"role": "user",      "content": user_message})
+        # Update in-memory session history
+        turn_idx = len(history)
+        history.append({"role": "user", "content": user_message})
         history.append({"role": "assistant", "content": reply_text})
         SESSION_HISTORY[message_id] = history[-10:]
 
-        return Response({"message_id": message_id, "reply": reply_text,
-                         "rag_snippets": rag_snippets}, status=status.HTTP_200_OK)
+        # Persist to DuckDB chat_sessions
+        try:
+            duckdb_client.save_chat_turn(message_id, turn_idx, "user", user_message)
+            duckdb_client.save_chat_turn(message_id, turn_idx + 1, "assistant", reply_text)
+        except Exception:
+            pass
+
+        return Response({
+            "message_id": message_id,
+            "reply": reply_text,
+            "rag_snippets": rag_snippets
+        }, status=status.HTTP_200_OK)
 
 
 # ── /api/report ───────────────────────────────────────────────────────────────
 class GenerateReportView(APIView):
     parser_classes = [JSONParser]
 
-    # Accept both GET (?message_id=X&format=pdf) and POST (body with analysis_result)
     def get(self, request):
         return self._handle(request)
 
@@ -134,7 +153,6 @@ class GenerateReportView(APIView):
         return self._handle(request)
 
     def _resolve_analysis(self, request):
-        """Return (analysis_result, error_response_or_None)."""
         analysis_result = None
         message_id = ""
 
@@ -177,8 +195,8 @@ class GenerateReportView(APIView):
         fmt = params.get("format", "json")
 
         if fmt == "pdf":
-            pdf = self._build_pdf(analysis_result, narrative)
-            resp = HttpResponse(pdf, content_type="application/pdf")
+            pdf_bytes = self._build_pdf(analysis_result, narrative)
+            resp = HttpResponse(pdf_bytes, content_type="application/pdf")
             resp["Content-Disposition"] = f'attachment; filename="incident_report_{message_id}.pdf"'
             resp["Access-Control-Allow-Origin"] = "*"
             return resp
@@ -187,11 +205,24 @@ class GenerateReportView(APIView):
             return HttpResponse(self._build_html(analysis_result, narrative),
                                 content_type="text/html")
 
-        return Response({"message_id": message_id, "report_narrative": narrative,
-                         "analysis_result": analysis_result}, status=status.HTTP_200_OK)
+        return Response({
+            "message_id": message_id,
+            "report_narrative": narrative,
+            "analysis_result": analysis_result
+        }, status=status.HTTP_200_OK)
 
-    # ── Reportlab Platypus PDF builder ────────────────────────────────────────
     def _build_pdf(self, ar, narrative):
+        # Try WeasyPrint first, then ReportLab
+        try:
+            import weasyprint
+            html_content = self._build_html(ar, narrative)
+            return weasyprint.HTML(string=html_content).write_pdf()
+        except Exception:
+            pass
+
+        return self._build_reportlab_pdf(ar, narrative)
+
+    def _build_reportlab_pdf(self, ar, narrative):
         from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.pagesizes import A4
@@ -245,7 +276,7 @@ class GenerateReportView(APIView):
             sub_s))
         story.append(HRFlowable(width="100%", thickness=2, color=accent, spaceAfter=12))
 
-        # Verdict summary row
+        # Verdict summary table
         score_s = ps("sc", fontSize=16, textColor=accent, fontName="Helvetica-Bold")
         act_s   = ps("ac", fontSize=10, textColor=dark, fontName="Helvetica-Bold")
         vtbl = Table([
@@ -267,7 +298,7 @@ class GenerateReportView(APIView):
         story.append(vtbl)
         story.append(Spacer(1, 12))
 
-        # § 1 Narrative
+        # 1. Executive Summary & Narrative
         story.append(Paragraph("1. Executive Summary", h2_s))
         story.append(HRFlowable(width="100%", thickness=0.5, color=grid, spaceAfter=8))
         for line in narrative.strip().split("\n"):
@@ -276,7 +307,7 @@ class GenerateReportView(APIView):
                 story.append(Paragraph(clean, body_s))
         story.append(Spacer(1, 8))
 
-        # § 2 Indicators
+        # 2. Forensic Indicators
         story.append(Paragraph(f"2. Forensic Indicators ({len(inds)} fired)", h2_s))
         story.append(HRFlowable(width="100%", thickness=0.5, color=grid, spaceAfter=8))
         if inds:
@@ -306,7 +337,7 @@ class GenerateReportView(APIView):
             story.append(Paragraph("No threat indicators fired.", body_s))
         story.append(Spacer(1, 8))
 
-        # § 3 IOCs
+        # 3. IOCs
         story.append(Paragraph("3. Indicators of Compromise (IOCs)", h2_s))
         story.append(HRFlowable(width="100%", thickness=0.5, color=grid, spaceAfter=8))
         ioc_rows = [
@@ -330,17 +361,16 @@ class GenerateReportView(APIView):
         story.append(itbl2)
         story.append(Spacer(1, 8))
 
-        # § 4 Action
+        # 4. Recommended Action
         story.append(Paragraph("4. Recommended Action", h2_s))
         story.append(HRFlowable(width="100%", thickness=0.5, color=grid, spaceAfter=8))
         action_detail = {
             "BLOCK_SENDER": "Block sender at all gateway filters immediately and purge related messages from all mailboxes.",
-            "QUARANTINE":   "Quarantine the message. Await analyst review before delivery.",
+            "QUARANTINE":   "Quarantine the message. Await security analyst review before delivery.",
         }.get(action, "Flag for user awareness. No immediate containment required.")
         story.append(Paragraph(
             f"<b>{action.replace('_', ' ')}</b> — {action_detail}", body_s))
 
-        # Footer
         def footer(cv, doc_):
             cv.saveState()
             cv.setFont("Helvetica", 7)
@@ -354,7 +384,6 @@ class GenerateReportView(APIView):
         doc.build(story, onFirstPage=footer, onLaterPages=footer)
         return buf.getvalue()
 
-    # ── Minimal HTML report ───────────────────────────────────────────────────
     def _build_html(self, ar, narrative):
         score  = ar.get("risk_score", 0)
         col    = "#ef4444" if score >= 70 else "#f59e0b" if score >= 30 else "#22c55e"
@@ -368,37 +397,41 @@ class GenerateReportView(APIView):
         urls_html = "<br>".join(f"<code>{u}</code>" for u in iocs.get("urls", [])) or "None"
         return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-body{{font-family:system-ui,sans-serif;margin:40px;color:#0f172a;max-width:820px;line-height:1.6}}
-h1{{font-size:22px;font-weight:800;margin-bottom:4px}}
-.sub{{color:#64748b;font-size:13px;margin-bottom:16px}}
-.badge{{display:inline-block;padding:5px 14px;border-radius:20px;
-        background:{col};color:#fff;font-weight:700;margin-bottom:20px}}
-h2{{font-size:14px;font-weight:700;border-bottom:1px solid #e2e8f0;
-    padding-bottom:6px;margin-top:28px;margin-bottom:10px}}
-table{{width:100%;border-collapse:collapse;font-size:12px}}
-th{{background:#f8fafc;padding:8px 10px;text-align:left;border-bottom:2px solid #e2e8f0;font-weight:600}}
-td{{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}}
-pre{{background:#f8fafc;padding:14px;border-radius:6px;font-size:12px;
-     white-space:pre-wrap;border-left:3px solid #3b82f6;margin:0}}
-code{{font-family:monospace;font-size:12px}}
-.action{{font-weight:700;color:{col};font-size:14px}}
+@page {{ margin: 1.5cm; size: A4; }}
+body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; color: #0f172a; line-height: 1.5; font-size: 13px; }}
+h1 {{ font-size: 20px; font-weight: 800; margin-bottom: 2px; color: #0f172a; }}
+.sub {{ color: #64748b; font-size: 11px; margin-bottom: 14px; }}
+.verdict-box {{ display: flex; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 20px; }}
+.badge {{ display: inline-block; padding: 4px 12px; border-radius: 16px; background: {col}; color: #fff; font-weight: 700; font-size: 12px; }}
+h2 {{ font-size: 13px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px; margin-bottom: 8px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }}
+table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }}
+th {{ background: #f8fafc; padding: 6px 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 600; color: #475569; }}
+td {{ padding: 6px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }}
+pre {{ background: #f8fafc; padding: 10px; border-radius: 6px; font-size: 11px; white-space: pre-wrap; border-left: 3px solid #3b82f6; margin: 0; font-family: inherit; }}
+code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #0f172a; }}
+.action {{ font-weight: 700; color: {col}; font-size: 13px; }}
 </style></head><body>
 <h1>Phish Forensics — Security Incident Report</h1>
-<p class="sub">Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}</p>
-<div class="badge">{ar.get('classification','').replace('_',' ')} &nbsp;·&nbsp; {score}/100</div>
+<p class="sub">Auto-generated forensic dossier &nbsp;·&nbsp; {datetime.datetime.now().strftime('%Y-%m-%d %H:%M UTC')}</p>
+<div class="verdict-box">
+  <div>
+    <span class="badge">{ar.get('classification','').replace('_',' ')} &nbsp;·&nbsp; {score}/100</span>
+    <p style="margin: 6px 0 0 0; font-size: 12px;"><b>Action:</b> <span class="action">{ar.get('recommended_action','').replace('_',' ')}</span></p>
+  </div>
+</div>
 
 <h2>1. Executive Summary</h2>
 <pre>{narrative}</pre>
 
 <h2>2. Forensic Indicators ({len(ar.get('indicators',[]))} fired)</h2>
 <table><thead><tr><th>Indicator</th><th>Evidence</th><th>Weight</th></tr></thead>
-<tbody>{rows if rows else "<tr><td colspan='3'>No indicators fired.</td></tr>"}</tbody></table>
+<tbody>{rows if rows else "<tr><td colspan='3'>No threat indicators fired.</td></tr>"}</tbody></table>
 
 <h2>3. Indicators of Compromise (IOCs)</h2>
 <p><b>Sender:</b> <code>{iocs.get('sender_address','N/A')}</code></p>
-<p><b>Domains:</b> <code>{', '.join(iocs.get('domains', [])) or 'None'}</code></p>
-<p><b>URLs:</b><br>{urls_html}</p>
-<p><b>Attachments:</b> <code>{', '.join(iocs.get('attachment_names',[])) or 'None'}</code></p>
+<p><b>Hostile Domains:</b> <code>{', '.join(iocs.get('domains', [])) or 'None'}</code></p>
+<p><b>Malicious URLs:</b><br>{urls_html}</p>
+<p><b>Attachment Names:</b> <code>{', '.join(iocs.get('attachment_names',[])) or 'None'}</code></p>
 
 <h2>4. Recommended Action</h2>
 <p class="action">{ar.get('recommended_action','').replace('_',' ')}</p>

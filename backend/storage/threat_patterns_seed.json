@@ -1,0 +1,162 @@
+[
+  {
+    "pattern_id": "THREAT_001",
+    "description": "Urgent Account Suspension Panic: Claims user account (PayPal, Bank, Netflix, Apple ID) will be permanently suspended within 24/48 hours unless immediate credential verification or login occurs at an external link."
+  },
+  {
+    "pattern_id": "THREAT_002",
+    "description": "Visual Typosquatting / Confusable Domain Spoofing: Sender domain or embedded URL subtly substitutes characters (e.g., paypa1 instead of paypal, rn for m, 0 for o) to deceive users into trusting fraudulent portals."
+  },
+  {
+    "pattern_id": "THREAT_003",
+    "description": "Double-Extension Executable Dropper: Inbound email attachment disguised as an invoice or receipt with double extension (e.g., invoice.pdf.exe, report.xlsx.vbs, statement.docx.scr) delivering malware."
+  },
+  {
+    "pattern_id": "THREAT_004",
+    "description": "Direct Credential Harvesting Prompt: Email explicitly requests user passwords, banking PINs, credit card CVV, Social Security Numbers, or OTP codes via a web form or direct reply."
+  },
+  {
+    "pattern_id": "THREAT_005",
+    "description": "Unauthorized Access Security Alert: Deceptive security warning stating unauthorized login detected from an unfamiliar location/IP, demanding user click link to secure account."
+  },
+  {
+    "pattern_id": "THREAT_006",
+    "description": "Subdomain Brand Masquerading: Phishing link places legitimate brand name inside subdomain while true registrable domain is attacker-controlled (e.g., paypal.com.verify-accounts-security.net)."
+  },
+  {
+    "pattern_id": "THREAT_007",
+    "description": "Macro-Enabled Office Document Dropper: Attachment contains macro-enabled document (.docm, .xlsm) with instructions prompting victim to enable content or run macros to view hidden text."
+  },
+  {
+    "pattern_id": "THREAT_008",
+    "description": "Insecure HTTP Credential Submission: Authentication or banking login portal URL delivered over unencrypted HTTP (no SSL/TLS encryption), exposing submitted data to interception."
+  },
+  {
+    "pattern_id": "THREAT_009",
+    "description": "Email Authentication Header Failure: Sender domain SPF, DKIM, or DMARC record verification failed or evaluated as softfail/fail, indicating sender header spoofing."
+  },
+  {
+    "pattern_id": "THREAT_010",
+    "description": "Mismatched Reply-To Address Redirection: From header displays a trusted brand or executive while Reply-To header points to an attacker-controlled external mailbox."
+  },
+  {
+    "pattern_id": "THREAT_011",
+    "description": "Fake Invoice / Overdue Billing Fraud: Email claims an expensive subscription or purchase (Geek Squad, Norton, McAfee, Apple Store) has auto-renewed, prompting a call or verification link."
+  },
+  {
+    "pattern_id": "THREAT_012",
+    "description": "Package Delivery & Customs Fee Scam: Impersonating postal carriers (USPS, FedEx, DHL, UPS) claiming package delivery is held due to incomplete address or unpaid customs clearance fee."
+  },
+  {
+    "pattern_id": "THREAT_013",
+    "description": "Corporate HR / Payroll & Direct Deposit Update: Phishing email targeting employee compensation, demanding update of banking direct deposit details or W-2 tax forms via fake HR link."
+  },
+  {
+    "pattern_id": "THREAT_014",
+    "description": "DocuSign / Adobe Sign Shared Document Lure: Message claiming urgent contract, legal settlement, or NDA requires electronic signature, redirecting to fake credential harvesting login."
+  },
+  {
+    "pattern_id": "THREAT_015",
+    "description": "Microsoft 365 / SharePoint File Sharing: Phishing message notifying recipient that a colleague shared a confidential SharePoint/OneDrive file, leading to fake Microsoft login page."
+  },
+  {
+    "pattern_id": "THREAT_016",
+    "description": "Crypto Wallet & Seed Phrase Recovery Scam: Deceptive email from MetaMask, Coinbase, Binance, or Ledger demanding seed phrase verification or urgent security sync to avoid asset freeze."
+  },
+  {
+    "pattern_id": "THREAT_017",
+    "description": "Executive Impersonation / CEO Wire Fraud (BEC): Attacker impersonates C-suite executive requesting urgent confidential wire transfer or gift card purchase for a client meeting."
+  },
+  {
+    "pattern_id": "THREAT_018",
+    "description": "IT Support Mandatory Password Expiration: Email pretending to be corporate IT/Helpdesk warning that user network password expires today, prompting verification on rogue SSO portal."
+  },
+  {
+    "pattern_id": "THREAT_019",
+    "description": "High-Abuse / Disposable Suspicious TLD Abuse: Phishing campaign leveraging low-reputation or free top-level domains (.tk, .ml, .ga, .xyz, .top, .buzz) to evade reputation filters."
+  },
+  {
+    "pattern_id": "THREAT_020",
+    "description": "URL Shortener & Multi-Hop Redirect Obfuscation: Email conceals malicious target URL behind multiple redirection hops or shortening services (bit.ly, tinyurl.com, cutt.ly)."
+  },
+  {
+    "pattern_id": "THREAT_021",
+    "description": "Raw IP-Literal Host URL: Hyperlink uses raw dotted-decimal IP address instead of registered domain name to bypass domain reputation lookups."
+  },
+  {
+    "pattern_id": "THREAT_022",
+    "description": "Newly Registered Domain Abuse (NRD): Attacker registers fresh domain within past 30 days specifically to conduct short-lived phishing run before domain gets blacklisted."
+  },
+  {
+    "pattern_id": "THREAT_023",
+    "description": "Display Name Spoofing: Email sender display name claims legitimate organization (e.g. 'PayPal Support') while actual sending address uses unrelated domain (e.g. random@gmail.com)."
+  },
+  {
+    "pattern_id": "THREAT_024",
+    "description": "Tax Authority / Government Refund Scam: Impersonation of IRS or HMRC promising unexpected tax refund or stimulus deposit upon entering personal identity credentials."
+  },
+  {
+    "pattern_id": "THREAT_025",
+    "description": "Excessive Received Relay Hops: Header inspection reveals message traversed anomalous number of relay servers and proxies, typical of bulletproof hosting evasion."
+  },
+  {
+    "pattern_id": "THREAT_026",
+    "description": "Unauthenticated Sender with Zero SPF/DKIM/DMARC: Inbound message completely lacks email authentication mechanisms, allowing arbitrary sender forging."
+  },
+  {
+    "pattern_id": "THREAT_027",
+    "description": "Voicemail / Missed Call Audio Phishing: Notification claiming new audio voicemail or PBX recording is waiting, attaching malicious HTML file or executable disguised as audio."
+  },
+  {
+    "pattern_id": "THREAT_028",
+    "description": "Fake Order Confirmation & Charge Notice: Email thanking customer for buying high-value items (MacBook, iPhone) with instructions to call fraud hotline or click link if unauthorized."
+  },
+  {
+    "pattern_id": "THREAT_029",
+    "description": "E-Commerce Account Locked Warning: Warning from Amazon, Walmart, or eBay alleging payment method failure or violation of terms of service."
+  },
+  {
+    "pattern_id": "THREAT_030",
+    "description": "Healthcare / Insurance Benefit Enrollment Scam: Fake open enrollment notice asking recipient to review insurance policy or submit personal medical/SSN details."
+  },
+  {
+    "pattern_id": "THREAT_031",
+    "description": "Vendor Banking Details Change (Invoice Fraud): Email impersonating recognized supplier announcing change in payment bank details for upcoming accounts payable wire."
+  },
+  {
+    "pattern_id": "THREAT_032",
+    "description": "OAuth Consent Grant Phishing (Illicit Consent): Attack asking user to authorize a rogue third-party app with broad mailbox read/write permissions."
+  },
+  {
+    "pattern_id": "THREAT_033",
+    "description": "HTML Smuggling Attachment: Attachment uses obfuscated JavaScript/HTML blob inside browser to assemble malware payload locally, bypassing perimeter gateway inspection."
+  },
+  {
+    "pattern_id": "THREAT_034",
+    "description": "QR Code Phishing (Quishing): Email body contains QR code directing user to scan with mobile device to bypass desktop web filtering and enter credentials."
+  },
+  {
+    "pattern_id": "THREAT_035",
+    "description": "Telecom & Wireless Carrier Bill Dispute: Fake billing notice from AT&T, Verizon, or T-Mobile claiming billing error or suspended 5G line."
+  },
+  {
+    "pattern_id": "THREAT_036",
+    "description": "Social Media Account Verification Badge: Phishing email offering Instagram or Twitter verified badge upon submitting login credentials."
+  },
+  {
+    "pattern_id": "THREAT_037",
+    "description": "Legal Subpoena & Copyright Infringement Threat: Threatening legal takedown notice requiring recipient to download case evidence zip file."
+  },
+  {
+    "pattern_id": "THREAT_038",
+    "description": "Extortion & Blackmail Panic: Scare email claiming attacker recorded user webcam and demanding Bitcoin payment within countdown deadline."
+  },
+  {
+    "pattern_id": "THREAT_039",
+    "description": "Cloud Storage Quota Full Warning: Notification that Google Drive or OneDrive storage is 99% full and incoming emails will bounce unless storage upgrade is confirmed."
+  },
+  {
+    "pattern_id": "THREAT_040",
+    "description": "Travel & Flight Booking Cancellation: Fake flight or hotel booking cancellation notification with link to claim refund or verify travel itinerary."
+  }
+]

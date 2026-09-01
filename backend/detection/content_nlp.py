@@ -19,6 +19,7 @@ URGENCY_PATTERNS = [
     "click here to avoid",
     "within 24 hours",
     "within 12 hours",
+    "within 48 hours",
     "security alert",
     "critical update",
     "terminate your account",
@@ -30,7 +31,24 @@ URGENCY_PATTERNS = [
     "action required",
     "limited time",
     "account locked",
-    "suspended permanently"
+    "suspended permanently",
+    "access restricted",
+    "immediate verification",
+    "pending suspension",
+    "security breach",
+    "fraud alert",
+    "unauthorized access detected",
+    "account deactivation notice",
+    "last reminder",
+    "expires today",
+    "confirm identity immediately",
+    "session expired",
+    "temporary block",
+    "mandatory update",
+    "compliance deadline",
+    "take action now",
+    "urgent: ",
+    "unauthorized transaction"
 ]
 
 CREDENTIAL_PATTERNS = [
@@ -46,7 +64,12 @@ CREDENTIAL_PATTERNS = [
     r"ssn|social security number",
     r"verify your credentials",
     r"submit your otp",
-    r"provide bank details"
+    r"provide bank details",
+    r"verify bank account",
+    r"enter your passcode",
+    r"wallet seed phrase",
+    r"submit your credentials",
+    r"confirm security questions"
 ]
 
 class ContentNlpAnalyzer:
@@ -65,7 +88,7 @@ class ContentNlpAnalyzer:
 
         if matched_phrases:
             # 0.3 per unique phrase, capped at 0.6 total
-            calculated_weight = min(0.6, 0.3 * len(matched_phrases))
+            calculated_weight = min(0.6, round(0.3 * len(matched_phrases), 2))
             indicators.append(Indicator(
                 module="content_nlp",
                 indicator="urgency_language",
@@ -101,10 +124,9 @@ class ContentNlpAnalyzer:
 
         words = re.findall(r'\b[a-zA-Z]{4,}\b', text)
         if len(words) >= 15:
-            # check misspelled ratio
             misspelled = _spell.unknown(words)
             ratio = len(misspelled) / len(words)
-            if ratio > 0.15: # >15% anomalous words
+            if ratio > 0.15:
                 weight = min(0.3, round(ratio * 0.5, 2))
                 indicators.append(Indicator(
                     module="content_nlp",

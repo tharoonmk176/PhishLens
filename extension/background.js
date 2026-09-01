@@ -1,15 +1,30 @@
 // Background service worker for Phish Forensics Chrome Extension
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "getAuthToken") {
-    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+function getAuthTokenWithRetry(interactive = true) {
+  return new Promise((resolve) => {
+    chrome.identity.getAuthToken({ interactive }, (token) => {
       if (chrome.runtime.lastError || !token) {
-        sendResponse({ success: false, error: chrome.runtime.lastError?.message || "Auth failed" });
+        resolve({ success: false, error: chrome.runtime.lastError?.message || "Auth failed" });
       } else {
-        sendResponse({ success: true, token: token });
+        resolve({ success: true, token });
       }
     });
-    return true; // Keep channel open for async response
+  });
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getAuthToken") {
+    getAuthTokenWithRetry(request.interactive ?? true).then(sendResponse);
+    return true;
+  }
+
+  if (request.action === "removeCachedToken") {
+    if (request.token) {
+      chrome.identity.removeCachedAuthToken({ token: request.token }, () => {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
   }
 
   if (request.action === "analyzeDirect") {
@@ -19,7 +34,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       body: JSON.stringify(request.payload)
     })
       .then(res => res.json())
-      .then(data => sendResponse({ success: true, data: data }))
+      .then(data => sendResponse({ success: true, data }))
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true;
   }
